@@ -651,77 +651,111 @@
     modal.className = 'modal-content-transcript';
     modal.setAttribute('data-theme', isDark ? 'dark' : 'light');
 
-    modal.innerHTML = `
-      <h2>${chrome.i18n.getMessage('modal_title')}</h2>
+    // Build modal via DOM (no innerHTML) to satisfy AMO linter
+    const h2 = document.createElement('h2');
+    h2.textContent = chrome.i18n.getMessage('modal_title');
+    modal.appendChild(h2);
 
-      <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:6px;">
-        <label for="td-api-key" style="font-size:14px;">
-          ${chrome.i18n.getMessage('lbl_apikey')}
-          <a href="https://aistudio.google.com/app/apikey" target="_blank"
-             style="margin-left:8px; font-size:12px; color:#3ea6ff; text-decoration:none;">
-            ${chrome.i18n.getMessage('lbl_apikey_link')}
-          </a>
-        </label>
-        <div style="display:flex; gap:6px; width:100%;">
-          <input type="password" id="td-api-key"
-            placeholder="AIza…"
-            autocomplete="off" spellcheck="false"
-            style="flex:1; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border);
-                   border-radius:6px; color:var(--yt-trans-text); font-size:13px;
-                   padding:7px 10px; outline:none;">
-          <button id="td-toggle-key"
-            style="background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border);
-                   border-radius:6px; color:var(--yt-trans-text); font-size:12px;
-                   padding:7px 10px; cursor:pointer; white-space:nowrap;">
-            ${chrome.i18n.getMessage('btn_show')}
-          </button>
-        </div>
-      </div>
+    // --- API Key section ---
+    const apiSection = document.createElement('div');
+    apiSection.className = 'setting-item';
+    apiSection.style.cssText = 'flex-direction:column; align-items:flex-start; gap:6px;';
 
-      <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;">
-        <label for="td-lang" style="font-size:14px;">${chrome.i18n.getMessage('lbl_lang')}</label>
-        <select id="td-lang"
-          style="width:100%; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border);
-                 border-radius:6px; color:var(--yt-trans-text); font-size:13px;
-                 padding:7px 10px; outline:none; cursor:pointer;">
-          ${LANGUAGES.map(l => `<option value="${l.code}">${l.label}</option>`).join('\n          ')}
-        </select>
-      </div>
+    const apiLabel = document.createElement('label');
+    apiLabel.htmlFor = 'td-api-key';
+    apiLabel.style.fontSize = '14px';
+    apiLabel.textContent = chrome.i18n.getMessage('lbl_apikey') + ' ';
+    const apiLink = document.createElement('a');
+    apiLink.href = 'https://aistudio.google.com/app/apikey';
+    apiLink.target = '_blank';
+    apiLink.style.cssText = 'margin-left:8px; font-size:12px; color:#3ea6ff; text-decoration:none;';
+    apiLink.textContent = chrome.i18n.getMessage('lbl_apikey_link');
+    apiLabel.appendChild(apiLink);
+    apiSection.appendChild(apiLabel);
 
-      <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%;">
-          <label for="td-prompt" style="font-size:14px;">${chrome.i18n.getMessage('lbl_prompt')}</label>
-          <button id="td-reset-prompt"
-            style="background:none; border:1px solid var(--yt-trans-border); border-radius:5px;
-                   color:#aaa; font-size:11px; padding:3px 8px; cursor:pointer;"
-            title="Prompt auf Standard zurücksetzen">
-            ${chrome.i18n.getMessage('btn_reset')}
-          </button>
-        </div>
-        <textarea id="td-prompt" rows="4" spellcheck="false"
-          style="width:100%; box-sizing:border-box; background:var(--yt-trans-bg);
-                 border:1px solid var(--yt-trans-border); border-radius:6px;
-                 color:var(--yt-trans-text); font-size:13px; padding:7px 10px;
-                 outline:none; resize:vertical; font-family:Roboto,Arial,sans-serif;
-                 line-height:1.5;"></textarea>
-      </div>
+    const apiRow = document.createElement('div');
+    apiRow.style.cssText = 'display:flex; gap:6px; width:100%;';
+    const apiInput = document.createElement('input');
+    apiInput.type = 'password';
+    apiInput.id = 'td-api-key';
+    apiInput.placeholder = 'AIza…';
+    apiInput.autocomplete = 'off';
+    apiInput.spellcheck = false;
+    apiInput.style.cssText = 'flex:1; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:13px; padding:7px 10px; outline:none;';
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'td-toggle-key';
+    toggleBtn.style.cssText = 'background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:12px; padding:7px 10px; cursor:pointer; white-space:nowrap;';
+    toggleBtn.textContent = chrome.i18n.getMessage('btn_show');
+    apiRow.appendChild(apiInput);
+    apiRow.appendChild(toggleBtn);
+    apiSection.appendChild(apiRow);
+    modal.appendChild(apiSection);
 
-      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:16px;">
-        <button id="td-cancel"
-          style="background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border);
-                 border-radius:6px; color:var(--yt-trans-text); font-size:14px;
-                 padding:8px 16px; cursor:pointer;">
-          ${chrome.i18n.getMessage('btn_cancel')}
-        </button>
-        <button id="td-save"
-          style="background:#3ea6ff; border:none; border-radius:6px; color:#000;
-                 font-size:14px; font-weight:600; padding:8px 16px; cursor:pointer;">
-          ${chrome.i18n.getMessage('btn_save')}
-        </button>
-      </div>
-      <div id="td-status" style="text-align:right; font-size:12px; color:#4ade80;
-           margin-top:6px; min-height:16px;"></div>
-    `;
+    // --- Language section ---
+    const langSection = document.createElement('div');
+    langSection.className = 'setting-item';
+    langSection.style.cssText = 'flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;';
+    const langLabel = document.createElement('label');
+    langLabel.htmlFor = 'td-lang';
+    langLabel.style.fontSize = '14px';
+    langLabel.textContent = chrome.i18n.getMessage('lbl_lang');
+    const langSelect = document.createElement('select');
+    langSelect.id = 'td-lang';
+    langSelect.style.cssText = 'width:100%; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:13px; padding:7px 10px; outline:none; cursor:pointer;';
+    LANGUAGES.forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.code;
+      opt.textContent = l.label;
+      langSelect.appendChild(opt);
+    });
+    langSection.appendChild(langLabel);
+    langSection.appendChild(langSelect);
+    modal.appendChild(langSection);
+
+    // --- Prompt section ---
+    const promptSection = document.createElement('div');
+    promptSection.className = 'setting-item';
+    promptSection.style.cssText = 'flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;';
+    const promptHeader = document.createElement('div');
+    promptHeader.style.cssText = 'display:flex; justify-content:space-between; align-items:center; width:100%;';
+    const promptLabel = document.createElement('label');
+    promptLabel.htmlFor = 'td-prompt';
+    promptLabel.style.fontSize = '14px';
+    promptLabel.textContent = chrome.i18n.getMessage('lbl_prompt');
+    const resetBtn = document.createElement('button');
+    resetBtn.id = 'td-reset-prompt';
+    resetBtn.style.cssText = 'background:none; border:1px solid var(--yt-trans-border); border-radius:5px; color:#aaa; font-size:11px; padding:3px 8px; cursor:pointer;';
+    resetBtn.textContent = chrome.i18n.getMessage('btn_reset');
+    promptHeader.appendChild(promptLabel);
+    promptHeader.appendChild(resetBtn);
+    const promptArea = document.createElement('textarea');
+    promptArea.id = 'td-prompt';
+    promptArea.rows = 4;
+    promptArea.spellcheck = false;
+    promptArea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:13px; padding:7px 10px; outline:none; resize:vertical; font-family:Roboto,Arial,sans-serif; line-height:1.5;';
+    promptSection.appendChild(promptHeader);
+    promptSection.appendChild(promptArea);
+    modal.appendChild(promptSection);
+
+    // --- Buttons row ---
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex; justify-content:flex-end; gap:8px; margin-top:16px;';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.id = 'td-cancel';
+    cancelBtn.style.cssText = 'background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:14px; padding:8px 16px; cursor:pointer;';
+    cancelBtn.textContent = chrome.i18n.getMessage('btn_cancel');
+    const saveBtn = document.createElement('button');
+    saveBtn.id = 'td-save';
+    saveBtn.style.cssText = 'background:#3ea6ff; border:none; border-radius:6px; color:#000; font-size:14px; font-weight:600; padding:8px 16px; cursor:pointer;';
+    saveBtn.textContent = chrome.i18n.getMessage('btn_save');
+    btnRow.appendChild(cancelBtn);
+    btnRow.appendChild(saveBtn);
+    modal.appendChild(btnRow);
+
+    const statusDiv = document.createElement('div');
+    statusDiv.id = 'td-status';
+    statusDiv.style.cssText = 'text-align:right; font-size:12px; color:#4ade80; margin-top:6px; min-height:16px;';
+    modal.appendChild(statusDiv);
 
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
