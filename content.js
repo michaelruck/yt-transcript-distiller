@@ -760,9 +760,25 @@
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
 
-    // Load current values
-    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang'], (r) => {
-      document.getElementById('td-api-key').value = r.geminiApiKey || '';
+    // Load current values — hide API section if key already set
+    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'invalidKey'], (r) => {
+      const hasKey = !!(r.geminiApiKey && r.geminiApiKey.trim());
+      const keyInvalid = !!(r.invalidKey);
+
+      // Show API section only if no key set, or key was marked invalid
+      if (hasKey && !keyInvalid) {
+        apiSection.style.display = 'none';
+      } else {
+        apiSection.style.display = '';
+        document.getElementById('td-api-key').value = r.geminiApiKey || '';
+        if (keyInvalid) {
+          const warn = document.createElement('div');
+          warn.style.cssText = 'color:#f87171; font-size:12px; margin-top:4px;';
+          warn.textContent = chrome.i18n.getMessage('err_key_invalid') || '⚠ API Key ungültig – bitte neu eingeben.';
+          apiSection.appendChild(warn);
+        }
+      }
+
       document.getElementById('td-prompt').value = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
       document.getElementById('td-lang').value = r.distillerLang || detectBrowserLang();
     });
@@ -786,18 +802,35 @@
 
     // Save
     document.getElementById('td-save').addEventListener('click', () => {
-      const key    = document.getElementById('td-api-key').value.trim();
+      const keyInput = document.getElementById('td-api-key');
+      const existingKey = !!(keyInput.closest('div') && apiSection.style.display === 'none');
       const prompt = document.getElementById('td-prompt').value.trim() || DEFAULT_DISTILLER_PROMPT;
       const lang   = document.getElementById('td-lang').value || detectBrowserLang();
       const status = document.getElementById('td-status');
 
+      // If API section hidden, save without touching the key
+      if (apiSection.style.display === 'none') {
+        chrome.storage.sync.set({ distillerPrompt: prompt, distillerLang: lang }, () => {
+          if (chrome.runtime.lastError) {
+            status.style.color = '#f87171';
+            status.textContent = chrome.i18n.getMessage('msg_save_error');
+          } else {
+            status.style.color = '#4ade80';
+            status.textContent = chrome.i18n.getMessage('msg_saved');
+            setTimeout(() => overlay.remove(), 800);
+          }
+        });
+        return;
+      }
+
+      const key = keyInput.value.trim();
       if (!key) {
         status.style.color = '#f87171';
         status.textContent = chrome.i18n.getMessage('msg_no_key');
         return;
       }
 
-      chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang }, () => {
+      chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, invalidKey: false }, () => {
         if (chrome.runtime.lastError) {
           status.style.color = '#f87171';
           status.textContent = chrome.i18n.getMessage('msg_save_error');
@@ -926,6 +959,9 @@
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       const msg = errBody?.error?.message || `HTTP ${res.status}`;
+      if (res.status === 401 || res.status === 403) {
+        chrome.storage.sync.set({ invalidKey: true });
+      }
       throw new Error(`Gemini API Fehler: ${msg}`);
     }
 
@@ -1030,8 +1066,12 @@
       copyButton.textContent = chrome.i18n.getMessage('btn_injecting');
       await injectTextIntoCommentField(finalText);
 
-      // Statistik-Ping (fire-and-forget)
-      pingStats(langCode, navigator.language || 'unknown', chrome.i18n.getUILanguage() || 'unknown');
+      // Statistik-Ping nur wenn Telemetrie aktiviert (default: an)
+      chrome.storage.sync.get(['telemetryEnabled'], (r) => {
+        if (r.telemetryEnabled !== false) {
+          pingStats(langCode, navigator.language || 'unknown', chrome.i18n.getUILanguage() || 'unknown');
+        }
+      });
 
       copyButton.textContent = chrome.i18n.getMessage('btn_done');
 

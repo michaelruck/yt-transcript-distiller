@@ -33,11 +33,14 @@ const statusEl    = document.getElementById('status');
 const toggleBtn   = document.getElementById('toggleShow');
 const resetBtn    = document.getElementById('resetPrompt');
 
+const telemetryCheckbox = document.getElementById('telemetryEnabled');
+
 // Load existing values
-chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang'], (result) => {
+chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'telemetryEnabled'], (result) => {
   if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
   promptInput.value = result.distillerPrompt || DEFAULT_PROMPT;
   langSelect.value  = result.distillerLang   || detectBrowserLang();
+  telemetryCheckbox.checked = result.telemetryEnabled !== false; // default: true
 });
 
 // Toggle show/hide API key
@@ -69,7 +72,7 @@ saveBtn.addEventListener('click', () => {
     return;
   }
 
-  chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang }, () => {
+  chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, telemetryEnabled: telemetryCheckbox.checked }, () => {
     if (chrome.runtime.lastError) {
       statusEl.textContent = chrome.i18n.getMessage('msg_save_error');
       statusEl.className = 'status error visible';
