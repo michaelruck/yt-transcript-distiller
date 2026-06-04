@@ -64,7 +64,7 @@ The add-on never stores or transmits your transcript data anywhere other than di
 ## Privacy
 
 - **API key:** stored locally, sent only to `generativelanguage.googleapis.com`
-- **Usage statistics:** an anonymous counter at `marsgasse.com` logs add-on name, action, language settings, and an hourly SHA256 IP hash — no personal data, no raw IPs. Can be disabled in the add-on settings.
+- **Usage statistics:** sent only on button click: add-on name, action and language settings. No personal data.
 
 ---
 
