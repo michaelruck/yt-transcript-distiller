@@ -22,8 +22,8 @@ You open a video. Twelve minutes. You watch. You wait. The one insight you came 
 
 ## Installation
 
-### Firefox Add-On Store *(pending approval)*
-The add-on has been submitted to [addons.mozilla.org](https://addons.mozilla.org). Link will be updated here once approved.
+### Firefox Add-On Store
+The add-on can be installed from [addons.mozilla.org](https://addons.mozilla.org/addon/youtube-transcript-distiller).
 
 ### Manual installation (Firefox Developer Edition / Nightly)
 1. Download the latest `yt-transcript-distiller.xpi` from [Releases](https://github.com/michaelruck/yt-transcript-distiller/releases)
