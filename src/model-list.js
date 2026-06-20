@@ -35,7 +35,7 @@ async function fetchAndCache(url) {
 }
 
 async function getCached(url) {
-  const stored = await chrome.storage.local.get(null);
+  const stored = await chrome.storage.local.get([CACHE_KEY]);
   const entry = stored[CACHE_KEY];
   if (!entry || entry.url !== url) return null;
   if (Date.now() - entry.cachedAt > CACHE_TTL_MS) return null;
