@@ -87,6 +87,43 @@ ${transcript}` }] }],
     }
   };
 
+  // src/providers/anthropic.js
+  var ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+  var ANTHROPIC_VERSION = "2023-06-01";
+  var DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+  var AnthropicProvider = class extends BaseProvider {
+    constructor({ apiKey, model } = {}) {
+      super();
+      this.apiKey = apiKey;
+      this.model = model || DEFAULT_MODEL;
+    }
+    async summarize(transcript, prompt, options = {}) {
+      const res = await fetch(ANTHROPIC_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": this.apiKey,
+          "anthropic-version": ANTHROPIC_VERSION
+        },
+        body: JSON.stringify({
+          model: this.model,
+          max_tokens: 8192,
+          system: prompt,
+          messages: [{ role: "user", content: transcript }]
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error?.message || `HTTP ${res.status}`;
+        throw new Error(`Anthropic API error: ${msg}`);
+      }
+      const data = await res.json();
+      const text = data?.content?.[0]?.text;
+      if (!text) throw new Error("Anthropic returned no usable response.");
+      return text.trim();
+    }
+  };
+
   // src/model-list.js
   var CACHE_KEY = "modelListCache";
   var CACHE_TTL_MS = 60 * 60 * 1e3;
@@ -122,6 +159,7 @@ ${transcript}` }] }],
     if (Date.now() - entry.cachedAt > CACHE_TTL_MS) return null;
     return entry.result;
   }
+  var OR_MODEL_LIST_TTL_MS = 60 * 60 * 1e3;
 
   // src/providers/index.js
   async function createProvider(settings) {
@@ -137,11 +175,17 @@ ${transcript}` }] }],
       });
     }
     if (provider === "openrouter") {
-      const resolved = await resolveModel(settings.openrouterModel);
+      const modelId = settings.openrouterCustomModel ? settings.openrouterCustomModel : (await resolveModel(settings.openrouterModel)).id;
       return new OpenAICompatProvider({
         apiKey: settings.openrouterApiKey,
-        model: resolved.id,
+        model: modelId,
         providerType: "openrouter"
+      });
+    }
+    if (provider === "anthropic") {
+      return new AnthropicProvider({
+        apiKey: settings.anthropicApiKey,
+        model: settings.anthropicModel
       });
     }
     throw new Error(`Unknown provider: ${provider}`);
@@ -266,6 +310,9 @@ ${transcript}` }] }],
           "openaiModel",
           "openrouterApiKey",
           "openrouterModel",
+          "openrouterCustomModel",
+          "anthropicApiKey",
+          "anthropicModel",
           "distillerPrompt",
           "distillerLang",
           "postComment",

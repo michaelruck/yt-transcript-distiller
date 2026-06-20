@@ -50,7 +50,8 @@ import { exportToGitHub } from './github-export.js';
     return new Promise(resolve => {
       chrome.storage.local.get([
         'provider', 'geminiApiKey', 'openaiApiKey', 'openaiModel',
-        'openrouterApiKey', 'openrouterModel',
+        'openrouterApiKey', 'openrouterModel', 'openrouterCustomModel',
+        'anthropicApiKey', 'anthropicModel',
         'distillerPrompt', 'distillerLang',
         'postComment', 'showInPopup',
         'githubExportEnabled', 'githubPat', 'githubRepo', 'githubSubfolder', 'githubFormat',

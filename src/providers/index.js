@@ -1,9 +1,9 @@
 import { GeminiProvider } from './gemini.js';
 import { OpenAICompatProvider } from './openai-compat.js';
+import { AnthropicProvider } from './anthropic.js';
 import { resolveModel } from '../model-list.js';
 
 export async function createProvider(settings) {
-  // default to gemini if provider not yet set
   const provider = settings.provider || 'gemini';
 
   if (provider === 'gemini') {
@@ -19,11 +19,20 @@ export async function createProvider(settings) {
   }
 
   if (provider === 'openrouter') {
-    const resolved = await resolveModel(settings.openrouterModel);
+    const modelId = settings.openrouterCustomModel
+      ? settings.openrouterCustomModel
+      : (await resolveModel(settings.openrouterModel)).id;
     return new OpenAICompatProvider({
       apiKey: settings.openrouterApiKey,
-      model: resolved.id,
+      model: modelId,
       providerType: 'openrouter',
+    });
+  }
+
+  if (provider === 'anthropic') {
+    return new AnthropicProvider({
+      apiKey: settings.anthropicApiKey,
+      model: settings.anthropicModel,
     });
   }
 

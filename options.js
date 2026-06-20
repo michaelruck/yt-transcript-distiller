@@ -37,6 +37,49 @@
     if (Date.now() - entry.cachedAt > CACHE_TTL_MS) return null;
     return entry.result;
   }
+  var OR_MODEL_LIST_CACHE_KEY = "orFullModelListCache";
+  var OR_MODEL_LIST_TTL_MS = 60 * 60 * 1e3;
+  async function validateModelId(modelsUrl, modelId) {
+    const stored = await chrome.storage.local.get([OR_MODEL_LIST_CACHE_KEY]);
+    const entry = stored[OR_MODEL_LIST_CACHE_KEY];
+    let models;
+    if (entry && entry.url === modelsUrl && Date.now() - entry.cachedAt < OR_MODEL_LIST_TTL_MS) {
+      models = entry.models;
+    } else {
+      const res = await fetch(modelsUrl);
+      if (!res.ok) throw new Error(`OpenRouter model list fetch failed: HTTP ${res.status}`);
+      const data = await res.json();
+      models = (data.data ?? []).map((m) => m.id);
+      await chrome.storage.local.set({
+        [OR_MODEL_LIST_CACHE_KEY]: { url: modelsUrl, models, cachedAt: Date.now() }
+      });
+    }
+    return models.includes(modelId);
+  }
+
+  // src/anthropic-model-list.js
+  var CACHE_KEY2 = "anthropicModelListCache";
+  var CACHE_TTL_MS2 = 48 * 60 * 60 * 1e3;
+  var SOURCE_URL = "https://raw.githubusercontent.com/smoochy/openrouter-model-list/main/anthropic-models.json";
+  async function fetchAnthropicModels() {
+    const stored = await chrome.storage.local.get([CACHE_KEY2]);
+    const entry = stored[CACHE_KEY2];
+    if (entry && Date.now() - entry.cachedAt < CACHE_TTL_MS2) {
+      return entry.result;
+    }
+    try {
+      const res = await fetch(SOURCE_URL);
+      if (!res.ok) throw new Error(`anthropic-model-list fetch failed: HTTP ${res.status}`);
+      const result = await res.json();
+      await chrome.storage.local.set({
+        [CACHE_KEY2]: { result, cachedAt: Date.now() }
+      });
+      return result;
+    } catch (err) {
+      if (entry) return entry.result;
+      throw err;
+    }
+  }
 
   // src/options/options.js
   async function migrateFromSync() {
@@ -84,6 +127,9 @@
   providerSelect.addEventListener("change", () => showProviderSection(providerSelect.value));
   var modelInput = document.getElementById("openrouterModel");
   var modelStatus = document.getElementById("modelStatus");
+  var customModelInput = document.getElementById("openrouterCustomModel");
+  var customModelError = document.getElementById("openrouterCustomModelError");
+  var orModelLabel = document.getElementById("openrouterModelLabel");
   async function validateAndShowModel(modelField) {
     if (!modelField) {
       modelStatus.style.display = "none";
@@ -107,6 +153,11 @@
     }
   }
   modelInput.addEventListener("blur", () => validateAndShowModel(modelInput.value.trim()));
+  function updateOrModelLabelStyle() {
+    const filled = customModelInput.value.trim().length > 0;
+    orModelLabel.style.color = filled ? "#555" : "";
+  }
+  customModelInput.addEventListener("input", updateOrModelLabelStyle);
   document.getElementById("reloadModelBtn").addEventListener("click", async () => {
     await clearModelCache();
     await validateAndShowModel(modelInput.value.trim());
@@ -119,6 +170,26 @@
   document.getElementById("resetPrompt").addEventListener("click", () => {
     document.getElementById("distillerPrompt").value = DEFAULT_PROMPT;
   });
+  var anthropicModelSelect = document.getElementById("anthropicModel");
+  async function populateAnthropicModels(savedModel) {
+    try {
+      const models = await fetchAnthropicModels();
+      anthropicModelSelect.innerHTML = "";
+      models.forEach(({ id, name }) => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = name || id;
+        anthropicModelSelect.appendChild(opt);
+      });
+      anthropicModelSelect.value = savedModel || (models[0]?.id ?? "claude-haiku-4-5-20251001");
+    } catch {
+      const opt = document.createElement("option");
+      opt.value = savedModel || "claude-haiku-4-5-20251001";
+      opt.textContent = savedModel || "claude-haiku-4-5-20251001";
+      anthropicModelSelect.innerHTML = "";
+      anthropicModelSelect.appendChild(opt);
+    }
+  }
   async function loadSettings() {
     await migrateFromSync();
     const s = await chrome.storage.local.get([
@@ -128,6 +199,9 @@
       "openaiModel",
       "openrouterApiKey",
       "openrouterModel",
+      "openrouterCustomModel",
+      "anthropicApiKey",
+      "anthropicModel",
       "distillerPrompt",
       "distillerLang",
       "postComment",
@@ -147,6 +221,10 @@
     const orModel = s.openrouterModel ?? "";
     modelInput.value = orModel;
     if (orModel) validateAndShowModel(orModel);
+    customModelInput.value = s.openrouterCustomModel ?? "";
+    updateOrModelLabelStyle();
+    document.getElementById("anthropicApiKey").value = s.anthropicApiKey ?? "";
+    await populateAnthropicModels(s.anthropicModel);
     document.getElementById("distillerPrompt").value = s.distillerPrompt || DEFAULT_PROMPT;
     langSelect.value = s.distillerLang ?? detectBrowserLang();
     document.getElementById("postComment").checked = s.postComment !== false;
@@ -163,6 +241,27 @@
   var statusEl = document.getElementById("status");
   saveBtn.addEventListener("click", async () => {
     const provider = providerSelect.value;
+    const customModel = customModelInput.value.trim();
+    if (provider === "openrouter" && customModel) {
+      customModelError.style.display = "none";
+      try {
+        const valid = await validateModelId(
+          "https://openrouter.ai/api/v1/models",
+          customModel
+        );
+        if (!valid) {
+          customModelError.textContent = `Model '${customModel}' not found on OpenRouter. Check the ID and try again.`;
+          customModelError.style.display = "block";
+          return;
+        }
+      } catch (e) {
+        customModelError.textContent = `Could not validate model: ${e.message}`;
+        customModelError.style.display = "block";
+        return;
+      }
+    } else {
+      customModelError.style.display = "none";
+    }
     const settings = {
       provider,
       geminiApiKey: document.getElementById("geminiApiKey").value.trim(),
@@ -170,6 +269,9 @@
       openaiModel: document.getElementById("openaiModel").value.trim() || "gpt-4o-mini",
       openrouterApiKey: document.getElementById("openrouterApiKey").value.trim(),
       openrouterModel: modelInput.value.trim(),
+      openrouterCustomModel: customModel,
+      anthropicApiKey: document.getElementById("anthropicApiKey").value.trim(),
+      anthropicModel: anthropicModelSelect.value || "claude-haiku-4-5-20251001",
       distillerPrompt: document.getElementById("distillerPrompt").value.trim() || DEFAULT_PROMPT,
       distillerLang: langSelect.value || detectBrowserLang(),
       postComment: document.getElementById("postComment").checked,
@@ -183,7 +285,8 @@
     const keyFieldMap = {
       gemini: "geminiApiKey",
       openai: "openaiApiKey",
-      openrouter: "openrouterApiKey"
+      openrouter: "openrouterApiKey",
+      anthropic: "anthropicApiKey"
     };
     if (!settings[keyFieldMap[provider]]) {
       statusEl.textContent = chrome.i18n.getMessage("msg_no_key") || "API key required.";
