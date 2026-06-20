@@ -8,6 +8,12 @@
 - Auto-versioning in `build.yml`: release tag computed from `package.json` version + smoochy commit count; no manual `v*` tagging needed
 - Manual `workflow_dispatch` for build.yml: re-releases same version by deleting and recreating the release
 - `CLAUDE.md` repo working guide
+- Factory test for `createProvider('anthropic')` path in `anthropic-provider.test.js`
+
+### Fixed
+- `loadProviderSettings` in `src/content.js` now reads `anthropicApiKey`, `anthropicModel`, and `openrouterCustomModel` from storage (were missing, causing Anthropic/custom OpenRouter settings to be silently ignored)
+- `build.yml` heredoc delimiter randomized with `openssl rand -hex 8` to prevent injection if a commit message line equals `EOF`
+- Bundle artifacts (`content.js`, `options.js`) rebuilt to include all provider storage keys
 
 ### Changed
 - `package.json` version reset to `1.3.1` to mirror upstream (release tag is the canonical version identifier)

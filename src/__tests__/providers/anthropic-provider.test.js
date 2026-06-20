@@ -2,6 +2,7 @@ import { jest } from '@jest/globals';
 global.fetch = jest.fn();
 
 import { AnthropicProvider } from '../../providers/anthropic.js';
+import { createProvider } from '../../providers/index.js';
 
 beforeEach(() => {
   fetch.mockClear();
@@ -69,4 +70,17 @@ test('uses DEFAULT_MODEL when no model provided', async () => {
   await p.summarize('t', 'p');
   const body = JSON.parse(fetch.mock.calls[0][1].body);
   expect(body.model).toBe('claude-haiku-4-5-20251001');
+});
+
+describe('createProvider Anthropic', () => {
+  test('returns AnthropicProvider with correct properties', async () => {
+    const provider = await createProvider({
+      provider: 'anthropic',
+      anthropicApiKey: 'test-key',
+      anthropicModel: 'claude-haiku-4-5-20251001',
+    });
+    expect(provider).toBeInstanceOf(AnthropicProvider);
+    expect(provider.apiKey).toBe('test-key');
+    expect(provider.model).toBe('claude-haiku-4-5-20251001');
+  });
 });

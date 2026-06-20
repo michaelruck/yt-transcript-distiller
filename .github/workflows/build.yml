@@ -70,9 +70,10 @@ jobs:
             BODY=$(git log HEAD --oneline --no-decorate)
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "body<<EOF" >> "$GITHUB_OUTPUT"
+          DELIMITER="EOF_$(openssl rand -hex 8)"
+          echo "body<<${DELIMITER}" >> "$GITHUB_OUTPUT"
           echo "$BODY" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+          echo "${DELIMITER}" >> "$GITHUB_OUTPUT"
 
       - name: Delete existing release if same tag exists (manual mode only)
         if: github.event_name == 'workflow_dispatch' && steps.tag.outputs.tag != ''
