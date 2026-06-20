@@ -29,13 +29,13 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yt-transcript-distiller-${{ github.sha }}
-          path: web-ext-artifacts/*.xpi
+          path: web-ext-artifacts/*.zip
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: web-ext-artifacts/*.xpi
+          files: web-ext-artifacts/*.zip
           body_path: RELEASE_NOTES.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

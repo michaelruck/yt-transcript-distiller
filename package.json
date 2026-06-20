@@ -21,13 +21,9 @@
     "setupFiles": [
       "jest-webextension-mock"
     ],
-    "setupFilesAfterFramework": [
+    "setupFilesAfterEnv": [
       "jest-fetch-mock/setupJest"
     ],
     "transform": {}
-  },
-  "allowScripts": {
-    "esbuild@0.25.12": true,
-    "spawn-sync@1.0.15": true
   }
 }
