@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Anthropic/Claude provider: API key + model selector (fetched from smoochy/openrouter-model-list, 48h cache); default model `claude-haiku-4-5-20251001`
+- OpenRouter custom model ID field: free-text input validated against OpenRouter `/api/v1/models` on save; takes priority over dropdown
+- Auto-versioning in `build.yml`: release tag computed from `package.json` version + smoochy commit count; no manual `v*` tagging needed
+- Manual `workflow_dispatch` for build.yml: re-releases same version by deleting and recreating the release
+- `CLAUDE.md` repo working guide
+
+### Changed
+- `package.json` version reset to `1.3.1` to mirror upstream (release tag is the canonical version identifier)
+- `build.yml` no longer triggers on `v*` tags; replaced by auto-versioning
+
+### Removed
+- `scripts/extract-release-notes.sh` and `RELEASE_NOTES.md` (replaced by git log)
+
 ## [1.4.0] – 2026-06-20
 
 ### Added
