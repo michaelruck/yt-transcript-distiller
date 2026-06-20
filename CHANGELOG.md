@@ -9,6 +9,10 @@
 - GitHub repo export: saves transcript + summary as Markdown and/or JSON
 - Tabbed settings page (AI Provider / Verhalten / GitHub Export)
 - esbuild bundler for ES module source in src/
+- Anthropic provider (`AnthropicProvider`) using Messages API with `claude-haiku-4-5-20251001` default model
+- `fetchAnthropicModels()` with 48h cache in `chrome.storage.local` fetching from openrouter-model-list repo
+- OpenRouter `openrouterCustomModel` override support in provider factory
+- `https://api.anthropic.com/*` added to manifest permissions
 
 ### Changed
 - All settings now stored in chrome.storage.local (migrated from sync on first run)

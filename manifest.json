@@ -16,6 +16,7 @@
     "https://openrouter.ai/*",
     "https://api.github.com/*",
     "https://raw.githubusercontent.com/*",
+    "https://api.anthropic.com/*",
     "https://marsgasse.com/*"
   ],
 
