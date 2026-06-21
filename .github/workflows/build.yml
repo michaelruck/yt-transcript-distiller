@@ -3,7 +3,7 @@ name: Build extension
 on:
   push:
     branches:
-      - smoochy/composite
+      - main
   workflow_dispatch:
 
 permissions:
@@ -24,23 +24,34 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build
         run: npm run build
+
+      - name: Sign with AMO (unlisted)
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          rm -f web-ext-artifacts/*.xpi
+          npx web-ext sign --channel=unlisted \
+            --api-key="$AMO_JWT_ISSUER" \
+            --api-secret="$AMO_JWT_SECRET"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: yt-transcript-distiller-${{ github.sha }}
-          path: web-ext-artifacts/*.zip
+          path: web-ext-artifacts/*.xpi
 
-      - name: Check if HEAD already tagged (auto mode only)
+      - name: Check if release tag already exists (auto mode only)
         if: github.event_name == 'push'
         id: already_tagged
         run: |
           git fetch --tags --quiet
-          if git tag --points-at HEAD | grep -qE '^v'; then
+          VERSION=$(awk '/^## \[/{gsub(/^## \[|\].*$/, ""); print; exit}' CHANGELOG.md)
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -50,25 +61,10 @@ jobs:
         if: steps.already_tagged.outputs.skip != 'true'
         id: tag
         run: |
-          git fetch --tags --quiet
-          UPSTREAM_VERSION=$(jq -r .version package.json)
-          git fetch origin main --quiet
-          SMOOCHY_COMMITS=$(git log origin/main..HEAD --oneline | wc -l | tr -d ' ')
-          if [ "$SMOOCHY_COMMITS" -eq 0 ]; then
-            TAG="v${UPSTREAM_VERSION}"
-          else
-            LAST_N=$(git tag -l "v${UPSTREAM_VERSION}-smoochy-v*" \
-              | sed "s/v${UPSTREAM_VERSION}-smoochy-v//" \
-              | sort -n | tail -1)
-            N=$(( ${LAST_N:-0} + 1 ))
-            TAG="v${UPSTREAM_VERSION}-smoochy-v${N}"
-          fi
-          PREV_TAG=$(git tag --sort=-creatordate | grep -E '^v' | head -1)
-          if [ -n "$PREV_TAG" ]; then
-            BODY=$(git log "${PREV_TAG}..HEAD" --oneline --no-decorate)
-          else
-            BODY=$(git log HEAD --oneline --no-decorate)
-          fi
+          VERSION=$(awk '/^## \[/{gsub(/^## \[|\].*$/, ""); print; exit}' CHANGELOG.md)
+          TAG="v${VERSION}"
+          BODY=$(awk "/^## \[${VERSION}\]/{found=1; next} found && /^## /{exit} found && NF{print}" CHANGELOG.md)
+          if [ -z "$BODY" ]; then BODY="No changelog entry for ${VERSION}."; fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           DELIMITER="EOF_$(openssl rand -hex 8)"
           echo "body<<${DELIMITER}" >> "$GITHUB_OUTPUT"
@@ -91,7 +87,7 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
-          files: web-ext-artifacts/*.zip
+          files: web-ext-artifacts/*.xpi
           body: ${{ steps.tag.outputs.body }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
