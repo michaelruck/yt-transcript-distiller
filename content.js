@@ -33,6 +33,9 @@
   // --- DEFAULT DISTILLER PROMPT ---
   const DEFAULT_DISTILLER_PROMPT = chrome.i18n.getMessage('default_prompt');
 
+  // --- DEFAULT GEMINI MODEL ---
+  const DEFAULT_MODEL = 'gemini-3.5-flash';
+
   // --- DEFAULT RANDOM LISTS ---
   const DEFAULT_MOODS = [
     'neugierig', 'begeistert', 'nachdenklich', 'humorvoll',
@@ -761,6 +764,28 @@
     langSection.appendChild(langSelect);
     modal.appendChild(langSection);
 
+    // --- Model section ---
+    const modelSection = document.createElement('div');
+    modelSection.className = 'setting-item';
+    modelSection.style.cssText = 'flex-direction:column; align-items:flex-start; gap:6px; margin-top:12px;';
+    const modelLabel = document.createElement('label');
+    modelLabel.htmlFor = 'td-model';
+    modelLabel.style.fontSize = '14px';
+    modelLabel.textContent = chrome.i18n.getMessage('lbl_model') || 'Gemini Model';
+    const modelInput = document.createElement('input');
+    modelInput.type = 'text';
+    modelInput.id = 'td-model';
+    modelInput.spellcheck = false;
+    modelInput.placeholder = DEFAULT_MODEL;
+    modelInput.style.cssText = 'width:100%; box-sizing:border-box; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:13px; padding:7px 10px; outline:none; font-family:Roboto,Arial,sans-serif;';
+    const modelHint = document.createElement('div');
+    modelHint.style.cssText = 'font-size:11px; color:#aaa;';
+    modelHint.textContent = chrome.i18n.getMessage('opt_model_hint') || `e.g. ${DEFAULT_MODEL}, gemini-flash-latest`;
+    modelSection.appendChild(modelLabel);
+    modelSection.appendChild(modelInput);
+    modelSection.appendChild(modelHint);
+    modal.appendChild(modelSection);
+
     // --- Prompt section ---
     const promptSection = document.createElement('div');
     promptSection.className = 'setting-item';
@@ -810,7 +835,7 @@
     document.body.appendChild(overlay);
 
     // Load current values — hide API section if key already set
-    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'invalidKey'], (r) => {
+    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'distillerModel', 'invalidKey'], (r) => {
       const hasKey = !!(r.geminiApiKey && r.geminiApiKey.trim());
       const keyInvalid = !!(r.invalidKey);
 
@@ -830,6 +855,7 @@
 
       document.getElementById('td-prompt').value = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
       document.getElementById('td-lang').value = r.distillerLang || detectBrowserLang();
+      document.getElementById('td-model').value = r.distillerModel || DEFAULT_MODEL;
     });
 
     // Reset prompt to default
@@ -855,11 +881,12 @@
       const existingKey = !!(keyInput.closest('div') && apiSection.style.display === 'none');
       const prompt = document.getElementById('td-prompt').value.trim() || DEFAULT_DISTILLER_PROMPT;
       const lang   = document.getElementById('td-lang').value || detectBrowserLang();
+      const model  = document.getElementById('td-model').value.trim() || DEFAULT_MODEL;
       const status = document.getElementById('td-status');
 
       // If API section hidden, save without touching the key
       if (apiSection.style.display === 'none') {
-        chrome.storage.sync.set({ distillerPrompt: prompt, distillerLang: lang }, () => {
+        chrome.storage.sync.set({ distillerPrompt: prompt, distillerLang: lang, distillerModel: model }, () => {
           if (chrome.runtime.lastError) {
             status.style.color = '#f87171';
             status.textContent = chrome.i18n.getMessage('msg_save_error');
@@ -879,7 +906,7 @@
         return;
       }
 
-      chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, invalidKey: false }, () => {
+      chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, distillerModel: model, invalidKey: false }, () => {
         if (chrome.runtime.lastError) {
           status.style.color = '#f87171';
           status.textContent = chrome.i18n.getMessage('msg_save_error');
@@ -980,9 +1007,9 @@
   }
 
   // --- GEMINI API CALL ---
-  async function callGeminiApi(apiKey, prompt, transcriptText) {
-    const model = 'gemini-2.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  async function callGeminiApi(apiKey, prompt, transcriptText, model) {
+    const modelId = (model || DEFAULT_MODEL).trim();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelId)}:generateContent?key=${apiKey}`;
 
     const body = {
       contents: [{
@@ -1112,13 +1139,14 @@
       }
 
       const userPrompt = await new Promise((resolve) => {
-        chrome.storage.sync.get(['distillerPrompt', 'distillerLang'], (r) => {
+        chrome.storage.sync.get(['distillerPrompt', 'distillerLang', 'distillerModel'], (r) => {
           const rawPrompt = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
           const cleanPrompt = filterPromptComments(rawPrompt);
           langCode = r.distillerLang || detectBrowserLang();
           const langEntry = LANGUAGES.find(l => l.code === langCode);
           const langName = langEntry ? langEntry.label.split(' — ')[0].trim() : 'English';
-          resolve({ cleanPrompt, langName });
+          const model = (r.distillerModel || DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+          resolve({ cleanPrompt, langName, model });
         });
       });
 
@@ -1145,7 +1173,7 @@
 
       // 4. Gemini aufrufen
       copyButton.textContent = chrome.i18n.getMessage('btn_thinking');
-      const summary = await callGeminiApi(apiKey, finalPrompt, fullContent);
+      const summary = await callGeminiApi(apiKey, finalPrompt, fullContent, userPrompt.model);
 
       // Footer in der gewählten Antwortsprache
       const finalText = `${summary}\n\n${getFooterForLang(langCode)}`;

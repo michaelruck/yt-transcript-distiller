@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "Par défaut : langue du navigateur. Secours : anglais."
   },
+  "lbl_model": {
+    "message": "Modèle Gemini"
+  },
+  "opt_model_hint": {
+    "message": "ID du modèle Gemini, p. ex. gemini-3.5-flash ou gemini-flash-latest. Modèles disponibles :"
+  },
   "lang_ar": {
     "message": "Arabe"
   },

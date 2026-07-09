@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "Default: browser language. Fallback: English."
   },
+  "lbl_model": {
+    "message": "Gemini Model"
+  },
+  "opt_model_hint": {
+    "message": "Gemini model ID, e.g. gemini-3.5-flash or gemini-flash-latest. Available models:"
+  },
   "lang_ar": {
     "message": "Arabic"
   },

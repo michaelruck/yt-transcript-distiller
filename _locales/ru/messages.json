@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "По умолчанию: язык браузера. Резервный: английский."
   },
+  "lbl_model": {
+    "message": "Модель Gemini"
+  },
+  "opt_model_hint": {
+    "message": "ID модели Gemini, напр. gemini-3.5-flash или gemini-flash-latest. Доступные модели:"
+  },
   "lang_ar": {
     "message": "Арабский"
   },

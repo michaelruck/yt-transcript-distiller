@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "デフォルト：ブラウザの言語。フォールバック：英語。"
   },
+  "lbl_model": {
+    "message": "Gemini モデル"
+  },
+  "opt_model_hint": {
+    "message": "Gemini モデル ID（例: gemini-3.5-flash、gemini-flash-latest）。利用可能なモデル:"
+  },
   "lang_ar": {
     "message": "アラビア語"
   },

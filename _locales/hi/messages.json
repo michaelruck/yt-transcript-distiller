@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "डिफ़ॉल्ट: ब्राउज़र भाषा। फ़ॉलबैक: अंग्रेज़ी।"
   },
+  "lbl_model": {
+    "message": "Gemini मॉडल"
+  },
+  "opt_model_hint": {
+    "message": "Gemini मॉडल ID, जैसे gemini-3.5-flash या gemini-flash-latest। उपलब्ध मॉडल:"
+  },
   "lang_ar": {
     "message": "अरबी"
   },

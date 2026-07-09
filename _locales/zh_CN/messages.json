@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "默认：浏览器语言。备用：英语。"
   },
+  "lbl_model": {
+    "message": "Gemini 模型"
+  },
+  "opt_model_hint": {
+    "message": "Gemini 模型 ID，例如 gemini-3.5-flash 或 gemini-flash-latest。可用模型："
+  },
   "lang_ar": {
     "message": "阿拉伯语"
   },

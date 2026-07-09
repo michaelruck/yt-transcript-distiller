@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "الافتراضي: لغة المتصفح. الاحتياطي: الإنجليزية."
   },
+  "lbl_model": {
+    "message": "نموذج Gemini"
+  },
+  "opt_model_hint": {
+    "message": "معرّف نموذج Gemini، مثل gemini-3.5-flash أو gemini-flash-latest. النماذج المتاحة:"
+  },
   "lang_ar": {
     "message": "العربية"
   },

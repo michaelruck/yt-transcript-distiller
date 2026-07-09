@@ -26,8 +26,10 @@ LANG_CODES.sort((a, b) => {
 });
 
 const DEFAULT_PROMPT = chrome.i18n.getMessage('default_prompt');
+const DEFAULT_MODEL  = 'gemini-3.5-flash';
 const apiKeyInput = document.getElementById('apiKey');
 const promptInput = document.getElementById('distillerPrompt');
+const modelInput  = document.getElementById('distillerModel');
 const saveBtn     = document.getElementById('saveBtn');
 const statusEl    = document.getElementById('status');
 const toggleBtn   = document.getElementById('toggleShow');
@@ -36,10 +38,11 @@ const resetBtn    = document.getElementById('resetPrompt');
 const telemetryCheckbox = document.getElementById('telemetryEnabled');
 
 // Load existing values
-chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'telemetryEnabled'], (result) => {
+chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'distillerModel', 'telemetryEnabled'], (result) => {
   if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
   promptInput.value = result.distillerPrompt || DEFAULT_PROMPT;
   langSelect.value  = result.distillerLang   || detectBrowserLang();
+  modelInput.value  = result.distillerModel  || DEFAULT_MODEL;
   telemetryCheckbox.checked = result.telemetryEnabled !== false; // default: true
 });
 
@@ -64,6 +67,7 @@ saveBtn.addEventListener('click', () => {
   const key    = apiKeyInput.value.trim();
   const prompt = promptInput.value.trim() || DEFAULT_PROMPT;
   const lang   = langSelect.value || detectBrowserLang();
+  const model  = modelInput.value.trim() || DEFAULT_MODEL;
 
   if (!key) {
     statusEl.textContent = chrome.i18n.getMessage('msg_no_key');
@@ -72,7 +76,7 @@ saveBtn.addEventListener('click', () => {
     return;
   }
 
-  chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, telemetryEnabled: telemetryCheckbox.checked }, () => {
+  chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, distillerModel: model, telemetryEnabled: telemetryCheckbox.checked }, () => {
     if (chrome.runtime.lastError) {
       statusEl.textContent = chrome.i18n.getMessage('msg_save_error');
       statusEl.className = 'status error visible';

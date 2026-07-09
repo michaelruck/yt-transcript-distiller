@@ -77,6 +77,12 @@
   "opt_lang_hint": {
     "message": "기본값: 브라우저 언어. 대체: 영어."
   },
+  "lbl_model": {
+    "message": "Gemini 모델"
+  },
+  "opt_model_hint": {
+    "message": "Gemini 모델 ID (예: gemini-3.5-flash, gemini-flash-latest). 사용 가능한 모델:"
+  },
   "lang_ar": {
     "message": "아랍어"
   },
