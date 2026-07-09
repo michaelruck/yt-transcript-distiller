@@ -13,6 +13,7 @@ You open a video. Twelve minutes. You watch. You wait. The one insight you came 
 - **AI-powered summarization** via Google Gemini (free API key required)
 - **Posts directly into the YouTube comment field** — formatted and ready to publish
 - **Fully customizable prompt** — change the instruction to anything you want
+- **Configurable Gemini model** — default is `gemini-3.5-flash`, switchable in the settings without waiting for an add-on update
 - **11 languages supported:** Arabic, Chinese, English, French, German, Hindi, Japanese, Korean, Portuguese, Russian, Spanish
 - **UI adapts to your browser language** automatically
 - **Quota countdown** — if you hit the Gemini rate limit, the button shows a live countdown
@@ -85,6 +86,10 @@ The add-on never stores or transmits your transcript data anywhere other than di
 The prompt sent to Gemini is fully editable. Click the gear icon → edit the **Prompt** field. The default prompt instructs Gemini to produce a structured YouTube comment with bullet points, bold keywords, and blank lines between items — no raw Markdown, no HTML.
 
 Click **↺ Reset** to restore the default prompt at any time.
+
+### Gemini model
+
+The **Gemini Model** field (gear icon or add-on settings page) accepts any model ID that supports `generateContent`, e.g. `gemini-3.5-flash`, `gemini-flash-latest`, or `gemini-3.1-flash-lite`. When Google retires a model — as happened with `gemini-2.5-flash` in July 2026 — enter a current ID from the [Gemini model list](https://ai.google.dev/gemini-api/docs/models) and keep going. If a model returns 503 "high demand", switching to `gemini-3.1-flash-lite` is a working fallback.
 
 ---
 
