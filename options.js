@@ -83,3 +83,40 @@ saveBtn.addEventListener('click', () => {
     setTimeout(() => { statusEl.className = 'status'; }, 3000);
   });
 });
+
+// --- MOOD & STYLE LISTS ---
+const DEFAULT_MOODS = [
+  'neugierig', 'begeistert', 'nachdenklich', 'humorvoll',
+  'angenehm überrascht', 'respektvoll', 'inspiriert', 'aufmerksam', 'anerkennend'
+];
+
+const DEFAULT_STYLES = [
+  'förmlich', 'informell', 'enthusiastisch'
+];
+
+const moodListArea  = document.getElementById('moodList');
+const styleListArea = document.getElementById('styleList');
+const resetMoodBtn  = document.getElementById('resetMoodList');
+const resetStyleBtn = document.getElementById('resetStyleList');
+
+// Load lists from storage
+chrome.storage.local.get(['moodList', 'styleList'], (r) => {
+  moodListArea.value  = (r.moodList  || DEFAULT_MOODS).join('\n');
+  styleListArea.value = (r.styleList || DEFAULT_STYLES).join('\n');
+});
+
+resetMoodBtn.addEventListener('click', () => {
+  moodListArea.value = DEFAULT_MOODS.join('\n');
+});
+
+resetStyleBtn.addEventListener('click', () => {
+  styleListArea.value = DEFAULT_STYLES.join('\n');
+});
+
+// Include lists in save
+const originalSave = saveBtn.onclick;
+saveBtn.addEventListener('click', () => {
+  const moodList  = moodListArea.value.split('\n').map(s => s.trim()).filter(Boolean);
+  const styleList = styleListArea.value.split('\n').map(s => s.trim()).filter(Boolean);
+  chrome.storage.local.set({ moodList, styleList });
+});

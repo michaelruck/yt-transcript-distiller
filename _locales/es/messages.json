@@ -111,7 +111,7 @@
     "message": "Español"
   },
   "default_prompt": {
-    "message": "Resume los puntos mas importantes de la transcripcion como comentario de YouTube.\n\nComienza con una sola palabra introductoria (ej. 'Resumen:', 'Puntos clave:') -- nunca una frase completa.\n\nReglas de formato:\n• Usa • como vineta\n• Usa 1. 2. 3. si se espera un numero especifico\n• Anade una linea en blanco despues de cada punto\n• Resalta solo palabras clave individuales en *negrita*\n• Separa las secciones con una linea en blanco\n• Sin Markdown (sin **, ##, -)\n• Sin etiquetas HTML, sin sangria"
+    "message": "# Meta-prompt con variables — editar segun necesidad\n# Disponible: {mood} {style} {title} {creator} {date} {version}\n# Las lineas con # se ignoran\nTu estado de animo hoy es: {mood}. Tu estilo es: {style}.\nEl canal se llama: {creator}. Analiza si el nombre contiene un nombre real. Si es asi, dirigete al creador por su nombre. Si no, usa el nombre del canal o evita el trato personal.\nComienza con una frase corta y entusiasta de agradecimiento en el idioma de respuesta. Escribe como si ya hubieras visto el video. Adapta la frase al estado de animo y estilo. Luego una linea en blanco y el resumen.\n\nAnaliza el contenido y determina su tipo, luego resume como comentario de YouTube:\n- *Receta* → ingredientes con cantidades, luego pasos numerados\n- *Tutorial* → pasos numerados, herramientas en *negrita*\n- *Talk / Entrevista* → argumentos clave, sin relleno\n- *Clickbait* → informacion real, sin exageracion\n- *Otro* → puntos mas importantes\n\nComienza el resumen con una sola palabra (ej. 'Resumen:', 'Receta:') — nunca una frase completa.\n\nReglas: • como vineta, 1.2.3. para pasos, linea en blanco tras cada punto, *negrita* para palabras clave, sin Markdown ni HTML."
   },
   "err_no_key": {
     "message": "No se ha configurado ninguna clave API de Gemini. Por favor, introdúcela en la configuración."
@@ -142,5 +142,20 @@
   },
   "err_key_invalid": {
     "message": "⚠ Clave API no válida – por favor, introduce una nueva."
+  },
+  "lbl_mood_list": {
+    "message": "Lista de estados de ánimo"
+  },
+  "lbl_mood_list_desc": {
+    "message": "Palabras para {mood} — una por línea"
+  },
+  "lbl_style_list": {
+    "message": "Lista de estilos"
+  },
+  "lbl_style_list_desc": {
+    "message": "Palabras para {style} — una por línea"
+  },
+  "lbl_list_hint": {
+    "message": "Se usa como {mood} o {style} en el prompt. Una palabra o frase por línea."
   }
 }

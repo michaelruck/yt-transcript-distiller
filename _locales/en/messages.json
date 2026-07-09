@@ -111,7 +111,7 @@
     "message": "Spanish"
   },
   "default_prompt": {
-    "message": "Summarize the most important points of the transcript as a YouTube comment.\n\nStart with a single introductory word (e.g. 'Summary:', 'Highlights:', 'Takeaways:') -- never a full sentence.\n\nFormatting rules:\n• Use • as bullet point\n• Use 1. 2. 3. when a specific number is expected\n• Add a blank line after each point\n• Highlight only individual keywords or sub-headings in *bold*, not entire sentences\n• Separate sections with a blank line\n• No Markdown (no **, no ##, no -)\n• No HTML tags, no indentation"
+    "message": "# Meta-prompt with template variables — edit as needed\n# Available: {mood} {style} {title} {creator} {date} {version}\n# Lines starting with # are ignored and not sent to Gemini\nDeine heutige Stimmung als Kommentator ist: {mood}. Dein Stil ist: {style}.\nDer Kanal heisst: {creator}. Analysiere ob der Kanalname einen echten Vornamen enthaelt. Wenn ja, sprich den Ersteller mit dem Vornamen an. Wenn nicht, verwende den Kanalnamen oder verzichte auf die persoenliche Anrede.\nBeginne mit einem kurzen, begeisterten Dankessatz in der Antwortsprache. Schreibe so als haettest du das Video bereits gesehen. Formuliere den Satz passend zur Stimmung und zum Stil — warm und aufrichtig. Dann eine Leerzeile, dann die Zusammenfassung.\n\nAnalyze the content and determine its type, then summarize accordingly as a YouTube comment:\n- *Recipe* → list ingredients with quantities, then numbered steps\n- *Tutorial / Instructions* → numbered step-by-step, highlight tools or requirements in *bold*\n- *Talk / Interview / Debate* → extract key arguments and conclusions, skip filler\n- *Clickbait / Hype* → extract the actual core information, ignore exaggeration\n- *Other* → summarize the most important points\n\nStart the summary with a single introductory word (e.g. 'Summary:', 'Recipe:', 'Steps:') — never a full sentence.\n\nFormatting rules:\n• Use • as bullet point\n• Use 1. 2. 3. for steps or when a specific number is expected\n• Add a blank line after each point\n• Highlight only individual keywords or sub-headings in *bold*\n• Separate sections with a blank line\n• No Markdown (no **, no ##, no -)\n• No HTML tags, no indentation"
   },
   "err_no_key": {
     "message": "No Gemini API key set. Please enter one in the add-on settings."
@@ -142,5 +142,20 @@
   },
   "err_key_invalid": {
     "message": "⚠ API key invalid – please enter a new one."
+  },
+  "lbl_mood_list": {
+    "message": "Mood List"
+  },
+  "lbl_mood_list_desc": {
+    "message": "Words for {mood} — one per line"
+  },
+  "lbl_style_list": {
+    "message": "Style List"
+  },
+  "lbl_style_list_desc": {
+    "message": "Words for {style} — one per line"
+  },
+  "lbl_list_hint": {
+    "message": "Used as {mood} or {style} in the prompt. One word or phrase per line."
   }
 }

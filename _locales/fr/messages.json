@@ -111,7 +111,7 @@
     "message": "Espagnol"
   },
   "default_prompt": {
-    "message": "Resume les points les plus importants de la transcription sous forme de commentaire YouTube.\n\nCommence par un seul mot d'introduction (ex. 'Resume :', 'Points cles :') -- jamais une phrase entiere.\n\nRegles de mise en forme :\n• Utilise • comme puce\n• Utilise 1. 2. 3. si un nombre precis est attendu\n• Ajoute une ligne vide apres chaque point\n• Met en *gras* uniquement les mots-cles ou sous-titres\n• Separe les sections par une ligne vide\n• Pas de Markdown (pas de **, ##, -)\n• Pas de balises HTML, pas d'indentation"
+    "message": "# Meta-prompt avec variables — modifier selon les besoins\n# Disponible: {mood} {style} {title} {creator} {date} {version}\n# Les lignes avec # sont ignorees\nTon humeur aujourd'hui est: {mood}. Ton style est: {style}.\nLa chaine s'appelle: {creator}. Analyse si le nom contient un prenom reel. Si oui, adresse-toi au createur par son prenom. Sinon, utilise le nom de la chaine ou evite l'adresse personnelle.\nCommence par une courte phrase de remerciement enthousiaste dans la langue de reponse. Ecris comme si tu avais deja regarde la video. Adapte la phrase a l'humeur et au style. Puis une ligne vide, puis le resume.\n\nAnalyse le contenu et determine son type, puis resume en commentaire YouTube:\n- *Recette* → ingredients avec quantites, puis etapes numerotees\n- *Tutoriel* → etapes numerotees, outils en *gras*\n- *Talk / Interview* → arguments cles, sans remplissage\n- *Clickbait* → information reelle, sans exageration\n- *Autre* → points les plus importants\n\nCommence le resume par un seul mot (ex. 'Resume:', 'Recette:') — jamais une phrase entiere.\n\nRegles: • comme puce, 1.2.3. pour etapes, ligne vide apres chaque point, *gras* pour mots-cles, pas de Markdown ni HTML."
   },
   "err_no_key": {
     "message": "Aucune clé API Gemini définie. Veuillez en saisir une dans les paramètres."
@@ -142,5 +142,20 @@
   },
   "err_key_invalid": {
     "message": "⚠ Clé API invalide – veuillez en saisir une nouvelle."
+  },
+  "lbl_mood_list": {
+    "message": "Liste d'humeurs"
+  },
+  "lbl_mood_list_desc": {
+    "message": "Mots pour {mood} — un par ligne"
+  },
+  "lbl_style_list": {
+    "message": "Liste de styles"
+  },
+  "lbl_style_list_desc": {
+    "message": "Mots pour {style} — un par ligne"
+  },
+  "lbl_list_hint": {
+    "message": "Utilisé comme {mood} ou {style} dans le prompt. Un mot ou une phrase par ligne."
   }
 }

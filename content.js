@@ -33,6 +33,55 @@
   // --- DEFAULT DISTILLER PROMPT ---
   const DEFAULT_DISTILLER_PROMPT = chrome.i18n.getMessage('default_prompt');
 
+  // --- DEFAULT RANDOM LISTS ---
+  const DEFAULT_MOODS = [
+    'neugierig', 'begeistert', 'nachdenklich', 'humorvoll',
+    'angenehm überrascht', 'respektvoll', 'inspiriert', 'aufmerksam', 'anerkennend'
+  ];
+
+  const DEFAULT_STYLES = [
+    'förmlich', 'informell', 'enthusiastisch'
+  ];
+
+  // --- DOM EXTRACTION HELPERS ---
+  function getVideoTitle() {
+    const el = document.querySelector('h1.ytd-video-primary-info-renderer, h1.style-scope.ytd-watch-metadata, ytd-watch-metadata h1');
+    return el ? el.textContent.trim() : '';
+  }
+
+  function getChannelName() {
+    const el = document.querySelector(
+      'ytd-channel-name yt-formatted-string, #channel-name yt-formatted-string, #owner #channel-name a'
+    );
+    return el ? el.textContent.trim() : '';
+  }
+
+  // --- TEMPLATE REPLACEMENT ---
+  async function applyTemplates(prompt) {
+    // Load custom lists from storage
+    const stored = await new Promise(resolve => {
+      chrome.storage.local.get(['moodList', 'styleList'], resolve);
+    });
+
+    const moodList  = (stored.moodList  && stored.moodList.length)  ? stored.moodList  : DEFAULT_MOODS;
+    const styleList = (stored.styleList && stored.styleList.length)  ? stored.styleList : DEFAULT_STYLES;
+
+    const mood    = moodList[Math.floor(Math.random() * moodList.length)];
+    const style   = styleList[Math.floor(Math.random() * styleList.length)];
+    const title   = getVideoTitle();
+    const creator = getChannelName();
+    const date    = new Date().toLocaleDateString();
+    const version = chrome.runtime.getManifest().version;
+
+    return prompt
+      .replace(/\{mood\}/g,    mood)
+      .replace(/\{style\}/g,   style)
+      .replace(/\{title\}/g,   title)
+      .replace(/\{creator\}/g, creator)
+      .replace(/\{date\}/g,    date)
+      .replace(/\{version\}/g, version);
+  }
+
   // --- DEFAULT SETTINGS ---
   const defaultSettings = {
     includeTitle: true,
@@ -989,6 +1038,33 @@
     'ko': `Transcript Distiller로 요약됨\n${AMO_LINK}`,
   };
 
+  // --- EXTRACT VIDEO DESCRIPTION FROM PAGE ---
+  function getVideoDescription() {
+    const selectors = [
+      '#description-inline-expander yt-attributed-string',
+      '#description-inline-expander',
+      '#snippet-text',
+      'ytd-text-inline-expander yt-attributed-string',
+      '#description .ytd-video-secondary-info-renderer',
+    ];
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el && el.textContent.trim()) {
+        return el.textContent.trim().slice(0, 3000); // max 3000 Zeichen
+      }
+    }
+    return null;
+  }
+
+  // --- FILTER # COMMENT LINES FROM PROMPT ---
+  function filterPromptComments(prompt) {
+    return prompt
+      .split('\n')
+      .filter(line => !line.trimStart().startsWith('#'))
+      .join('\n')
+      .trim();
+  }
+
   function getFooterForLang(langCode) {
     return FOOTER_BY_LANG[langCode] || FOOTER_BY_LANG['en'];
   }
@@ -1037,13 +1113,18 @@
 
       const userPrompt = await new Promise((resolve) => {
         chrome.storage.sync.get(['distillerPrompt', 'distillerLang'], (r) => {
-          const prompt = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
+          const rawPrompt = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
+          const cleanPrompt = filterPromptComments(rawPrompt);
           langCode = r.distillerLang || detectBrowserLang();
           const langEntry = LANGUAGES.find(l => l.code === langCode);
           const langName = langEntry ? langEntry.label.split(' — ')[0].trim() : 'English';
-          resolve(`${prompt}\n\nRespond exclusively in ${langName}.`);
+          resolve({ cleanPrompt, langName });
         });
       });
+
+      // Templates ersetzen ({mood}, {style}, {title}, {creator}, ...)
+      const templatedPrompt = await applyTemplates(userPrompt.cleanPrompt);
+      const finalPrompt = `${templatedPrompt}\n\nRespond exclusively in ${userPrompt.langName}.`;
 
       // 2. Transkript holen
       copyButton.textContent = chrome.i18n.getMessage('btn_fetching');
@@ -1052,14 +1133,19 @@
         throw new Error(chrome.i18n.getMessage('err_no_transcript'));
       }
 
-      // 3. Transkript formatieren
+      // 3. Transkript + Description formatieren
       const transcriptText = transcriptObj.transcript
         .map(([, text]) => text)
         .join(' ');
 
+      const description = getVideoDescription();
+      const fullContent = description
+        ? `[Video Description]\n${description}\n\n[Transcript]\n${transcriptText}`
+        : transcriptText;
+
       // 4. Gemini aufrufen
       copyButton.textContent = chrome.i18n.getMessage('btn_thinking');
-      const summary = await callGeminiApi(apiKey, userPrompt, transcriptText);
+      const summary = await callGeminiApi(apiKey, finalPrompt, fullContent);
 
       // Footer in der gewählten Antwortsprache
       const finalText = `${summary}\n\n${getFooterForLang(langCode)}`;

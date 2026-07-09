@@ -111,7 +111,7 @@
     "message": "Spanisch"
   },
   "default_prompt": {
-    "message": "Fasse die wichtigsten Punkte des Transkripts als YouTube-Kommentar zusammen.\n\nBeginne mit einem einzigen einleitenden Wort (z.B. 'Zusammenfassung:', 'Highlights:', 'Kernpunkte:') -- niemals mit einem ganzen Satz.\n\nFormatierungsregeln:\n• Verwende • als Aufzaehlungszeichen\n• Nummeriere mit 1. 2. 3. wenn eine bestimmte Anzahl erwartet wird\n• Fuege nach jedem Punkt eine Leerzeile ein\n• Hebe nur einzelne Schluesselbegriffe oder Unter-Ueberschriften mit *Fettschrift* hervor\n• Trenne Abschnitte mit einer Leerzeile\n• Kein Markdown (kein **, kein ##, kein -)\n• Keine HTML-Tags, keine Einrueckungen"
+    "message": "# Meta-Prompt mit Template-Variablen — nach Bedarf anpassen\n# Verfuegbar: {mood} {style} {title} {creator} {date} {version}\n# Zeilen mit # werden ignoriert und nicht an Gemini gesendet\nDeine heutige Stimmung als Kommentator ist: {mood}. Dein Stil ist: {style}.\nDer Kanal heisst: {creator}. Analysiere ob der Kanalname einen echten Vornamen enthaelt. Wenn ja, sprich den Ersteller mit dem Vornamen an. Wenn nicht, verwende den Kanalnamen oder verzichte auf die persoenliche Anrede.\nBeginne mit einem kurzen, begeisterten Dankessatz in der Antwortsprache. Schreibe so als haettest du das Video bereits gesehen. Formuliere den Satz passend zur Stimmung und zum Stil — warm und aufrichtig. Dann eine Leerzeile, dann die Zusammenfassung.\n\nAnalysiere den Inhalt und bestimme den Typ, dann fasse entsprechend als YouTube-Kommentar zusammen:\n- *Rezept* → liste Zutaten mit Mengen, dann nummerierte Schritte\n- *Anleitung / Tutorial* → nummerierte Schritt-fuer-Schritt-Anleitung, Werkzeuge *fett*\n- *Talk / Interview / Diskussion* → Kernargumente extrahieren, Fueller ueberspringen\n- *Clickbait / Hype* → tatsaechliche Kerninformation, Uebertreibungen ignorieren\n- *Sonstiges* → wichtigste Punkte zusammenfassen\n\nBeginne die Zusammenfassung mit einem einzigen einleitenden Wort (z.B. 'Zusammenfassung:', 'Rezept:', 'Schritte:') — niemals mit einem ganzen Satz.\n\nFormatierungsregeln:\n• • als Aufzaehlungszeichen\n• 1. 2. 3. fuer Schritte\n• Leerzeile nach jedem Punkt\n• Nur Schluesselwoerter *fett*\n• Abschnitte mit Leerzeile trennen\n• Kein Markdown, kein HTML, keine Einrueckungen"
   },
   "err_no_key": {
     "message": "Kein Gemini API-Key gesetzt. Bitte unter Add-on-Einstellungen eintragen."
@@ -142,5 +142,20 @@
   },
   "err_key_invalid": {
     "message": "⚠ API-Key ungültig – bitte neu eingeben."
+  },
+  "lbl_mood_list": {
+    "message": "Stimmungsliste"
+  },
+  "lbl_mood_list_desc": {
+    "message": "Wörter für {mood} – eines pro Zeile"
+  },
+  "lbl_style_list": {
+    "message": "Stylliste"
+  },
+  "lbl_style_list_desc": {
+    "message": "Wörter für {style} – eines pro Zeile"
+  },
+  "lbl_list_hint": {
+    "message": "Wird als {mood} oder {style} im Prompt verwendet. Ein Wort oder eine Phrase pro Zeile."
   }
 }
