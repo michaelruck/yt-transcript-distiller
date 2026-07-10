@@ -81,7 +81,13 @@
     "message": "Gemini-Modell"
   },
   "opt_model_hint": {
-    "message": "Gemini-Modell-ID, z. B. gemini-3.5-flash oder gemini-flash-latest. Verfügbare Modelle:"
+    "message": "Flash-Lite ist der Standard. Flash und Pro haben engere Free-Tier-Limits; Pro braucht praktisch einen Bezahltarif. Modellreferenz:"
+  },
+  "opt_model_custom": {
+    "message": "Eigene Modell-ID…"
+  },
+  "err_switch_model": {
+    "message": "Tipp: In den Add-on-Einstellungen ein anderes Gemini-Modell wählen."
   },
   "lang_ar": {
     "message": "Arabisch"

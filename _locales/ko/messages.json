@@ -81,7 +81,13 @@
     "message": "Gemini 모델"
   },
   "opt_model_hint": {
-    "message": "Gemini 모델 ID (예: gemini-3.5-flash, gemini-flash-latest). 사용 가능한 모델:"
+    "message": "기본 모델은 Flash-Lite입니다. Flash와 Pro는 무료 한도가 더 엄격하며, Pro는 사실상 유료 요금제가 필요합니다. 모델 참조:"
+  },
+  "opt_model_custom": {
+    "message": "사용자 지정 모델 ID…"
+  },
+  "err_switch_model": {
+    "message": "팁: 부가 기능 설정에서 다른 Gemini 모델을 선택하세요."
   },
   "lang_ar": {
     "message": "아랍어"

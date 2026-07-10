@@ -81,7 +81,13 @@
     "message": "نموذج Gemini"
   },
   "opt_model_hint": {
-    "message": "معرّف نموذج Gemini، مثل gemini-3.5-flash أو gemini-flash-latest. النماذج المتاحة:"
+    "message": "Flash-Lite هو النموذج الافتراضي. لدى Flash وPro حدود مجانية أضيق؛ ويتطلب Pro عمليًا خطة مدفوعة. مرجع النماذج:"
+  },
+  "opt_model_custom": {
+    "message": "معرّف نموذج مخصص…"
+  },
+  "err_switch_model": {
+    "message": "نصيحة: اختر نموذج Gemini آخر في إعدادات الإضافة."
   },
   "lang_ar": {
     "message": "العربية"

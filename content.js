@@ -34,7 +34,7 @@
   const DEFAULT_DISTILLER_PROMPT = chrome.i18n.getMessage('default_prompt');
 
   // --- DEFAULT GEMINI MODEL ---
-  const DEFAULT_MODEL = 'gemini-3.5-flash';
+  const DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
   // --- PLATFORM DETECTION ---
   // m.youtube.com uses a completely different DOM (ytm-* elements) than www.
@@ -1070,7 +1070,12 @@
       if (res.status === 401 || res.status === 403) {
         chrome.storage.sync.set({ invalidKey: true });
       }
-      throw new Error(`Gemini API Fehler: ${msg}`);
+      // 404 = Modell abgeschaltet, 429 = Tageskontingent des Modells leer,
+      // 503 = Modell überlastet — in allen drei Fällen hilft ein Modellwechsel.
+      const hint = (res.status === 404 || res.status === 429 || res.status === 503)
+        ? `\n\n${chrome.i18n.getMessage('err_switch_model')}`
+        : '';
+      throw new Error(`Gemini API Fehler: ${msg}${hint}`);
     }
 
     const data = await res.json();

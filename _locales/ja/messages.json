@@ -81,7 +81,13 @@
     "message": "Gemini モデル"
   },
   "opt_model_hint": {
-    "message": "Gemini モデル ID（例: gemini-3.5-flash、gemini-flash-latest）。利用可能なモデル:"
+    "message": "デフォルトは Flash-Lite です。Flash と Pro は無料枠の制限が厳しく、Pro は実質的に有料プランが必要です。モデル一覧："
+  },
+  "opt_model_custom": {
+    "message": "カスタムモデル ID…"
+  },
+  "err_switch_model": {
+    "message": "ヒント: アドオンの設定で別の Gemini モデルを選択してください。"
   },
   "lang_ar": {
     "message": "アラビア語"

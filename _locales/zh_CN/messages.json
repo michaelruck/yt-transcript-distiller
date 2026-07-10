@@ -81,7 +81,13 @@
     "message": "Gemini 模型"
   },
   "opt_model_hint": {
-    "message": "Gemini 模型 ID，例如 gemini-3.5-flash 或 gemini-flash-latest。可用模型："
+    "message": "Flash-Lite 为默认模型。Flash 和 Pro 的免费额度更紧张；Pro 实际上需要付费方案。模型参考："
+  },
+  "opt_model_custom": {
+    "message": "自定义模型 ID…"
+  },
+  "err_switch_model": {
+    "message": "提示：请在扩展设置中选择其他 Gemini 模型。"
   },
   "lang_ar": {
     "message": "阿拉伯语"

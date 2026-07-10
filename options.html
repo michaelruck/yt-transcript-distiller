@@ -63,6 +63,17 @@
   </div>
 
   <div class="section">
+    <h2 data-i18n="lbl_model"></h2>
+    <label for="distillerModelSelect" data-i18n="lbl_model"></label>
+    <select id="distillerModelSelect"></select>
+    <input type="text" id="distillerModel" placeholder="gemini-flash-lite-latest" autocomplete="off" spellcheck="false" style="display:none; margin-top:8px;">
+    <div class="hint">
+      <span data-i18n="opt_model_hint"></span>
+      <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank">ai.google.dev/gemini-api/docs/models</a>
+    </div>
+  </div>
+
+  <div class="section">
     <h2 data-i18n="lbl_prompt"></h2>
     <div class="prompt-header">
       <label for="distillerPrompt" data-i18n="lbl_prompt"></label>
@@ -77,16 +88,6 @@
     <label for="distillerLang" data-i18n="lbl_lang"></label>
     <select id="distillerLang"></select>
     <div class="hint" data-i18n="opt_lang_hint"></div>
-  </div>
-
-  <div class="section">
-    <h2 data-i18n="lbl_model"></h2>
-    <label for="distillerModel" data-i18n="lbl_model"></label>
-    <input type="text" id="distillerModel" placeholder="gemini-3.5-flash" autocomplete="off" spellcheck="false">
-    <div class="hint">
-      <span data-i18n="opt_model_hint"></span>
-      <a href="https://ai.google.dev/gemini-api/docs/models" target="_blank">ai.google.dev/gemini-api/docs/models</a>
-    </div>
   </div>
 
   <div class="section">

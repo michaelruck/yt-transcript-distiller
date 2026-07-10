@@ -81,7 +81,13 @@
     "message": "Модель Gemini"
   },
   "opt_model_hint": {
-    "message": "ID модели Gemini, напр. gemini-3.5-flash или gemini-flash-latest. Доступные модели:"
+    "message": "Flash-Lite — модель по умолчанию. У Flash и Pro более жёсткие бесплатные лимиты; Pro фактически требует платного тарифа. Справочник моделей:"
+  },
+  "opt_model_custom": {
+    "message": "Свой ID модели…"
+  },
+  "err_switch_model": {
+    "message": "Совет: выберите другую модель Gemini в настройках расширения."
   },
   "lang_ar": {
     "message": "Арабский"

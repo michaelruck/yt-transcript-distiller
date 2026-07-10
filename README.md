@@ -15,7 +15,7 @@ You open a video. Twelve minutes. You watch. You wait. The one insight you came 
 - **Silent transcript fetch** — reads the caption track straight from the player, no panel opens, no scrolling
 - **Posts directly into the YouTube comment field** — formatted and ready to publish
 - **Fully customizable prompt** — change the instruction to anything you want
-- **Configurable Gemini model** — default is `gemini-3.5-flash`, switchable in the settings without waiting for an add-on update
+- **Configurable Gemini model** — pick Flash-Lite (default), Flash, or Pro from a dropdown, or enter any model ID manually
 - **11 languages supported:** Arabic, Chinese, English, French, German, Hindi, Japanese, Korean, Portuguese, Russian, Spanish
 - **UI adapts to your browser language** automatically
 - **Quota countdown** — if you hit the Gemini rate limit, the button shows a live countdown
@@ -92,7 +92,13 @@ Click **↺ Reset** to restore the default prompt at any time.
 
 ### Gemini model
 
-The **Gemini Model** field (add-on settings page in `about:addons`) accepts any model ID that supports `generateContent`, e.g. `gemini-3.5-flash`, `gemini-flash-latest`, or `gemini-3.1-flash-lite`. When Google retires a model — as happened with `gemini-2.5-flash` in July 2026 — enter a current ID from the [Gemini model list](https://ai.google.dev/gemini-api/docs/models) and keep going. If a model returns 503 "high demand", switching to `gemini-3.1-flash-lite` is a working fallback.
+The **Gemini Model** dropdown (add-on settings page in `about:addons`) offers three alias IDs that Google keeps pointing at the newest release of each line:
+
+- `gemini-flash-lite-latest` — the default; fast, and its free-tier quota holds up in daily use
+- `gemini-flash-latest` — stronger, but the free tier allows few requests per day
+- `gemini-pro-latest` — effectively requires a paid plan
+
+**Custom model ID…** accepts any model ID that supports `generateContent` from the [Gemini model list](https://ai.google.dev/gemini-api/docs/models). If a model answers with 404 (retired), 429 (daily quota used up), or 503 (overloaded), the error message says so — switching the model in the settings is the fix.
 
 ---
 

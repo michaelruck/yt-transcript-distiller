@@ -26,10 +26,46 @@ LANG_CODES.sort((a, b) => {
 });
 
 const DEFAULT_PROMPT = chrome.i18n.getMessage('default_prompt');
-const DEFAULT_MODEL  = 'gemini-3.5-flash';
+const DEFAULT_MODEL  = 'gemini-flash-lite-latest';
+
+// Kuratierte Alias-IDs statt ListModels: die Aliase wandern automatisch zur
+// jeweils neuesten Version, und die Rohliste der API enthält TTS-/Bild-/
+// Musikmodelle ohne Abschalt-Flag (Entscheidung 2026-07-10).
+const MODEL_CHOICES = [
+  { id: 'gemini-flash-lite-latest', label: 'Gemini Flash-Lite (gemini-flash-lite-latest)' },
+  { id: 'gemini-flash-latest',      label: 'Gemini Flash (gemini-flash-latest)' },
+  { id: 'gemini-pro-latest',        label: 'Gemini Pro (gemini-pro-latest)' },
+];
+const MODEL_CUSTOM = '__custom__';
+
 const apiKeyInput = document.getElementById('apiKey');
 const promptInput = document.getElementById('distillerPrompt');
 const modelInput  = document.getElementById('distillerModel');
+const modelSelect = document.getElementById('distillerModelSelect');
+
+MODEL_CHOICES.forEach(({ id, label }) => {
+  const opt = document.createElement('option');
+  opt.value = id;
+  opt.textContent = label;
+  modelSelect.appendChild(opt);
+});
+const customOpt = document.createElement('option');
+customOpt.value = MODEL_CUSTOM;
+customOpt.textContent = chrome.i18n.getMessage('opt_model_custom');
+modelSelect.appendChild(customOpt);
+
+function setModelUi(model) {
+  const known = MODEL_CHOICES.some(c => c.id === model);
+  modelSelect.value = known ? model : MODEL_CUSTOM;
+  modelInput.style.display = known ? 'none' : 'block';
+  if (!known) modelInput.value = model;
+}
+
+modelSelect.addEventListener('change', () => {
+  const custom = modelSelect.value === MODEL_CUSTOM;
+  modelInput.style.display = custom ? 'block' : 'none';
+  if (custom) modelInput.focus();
+});
 const saveBtn     = document.getElementById('saveBtn');
 const statusEl    = document.getElementById('status');
 const toggleBtn   = document.getElementById('toggleShow');
@@ -42,7 +78,7 @@ chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'di
   if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
   promptInput.value = result.distillerPrompt || DEFAULT_PROMPT;
   langSelect.value  = result.distillerLang   || detectBrowserLang();
-  modelInput.value  = result.distillerModel  || DEFAULT_MODEL;
+  setModelUi((result.distillerModel || DEFAULT_MODEL).trim());
   telemetryCheckbox.checked = result.telemetryEnabled !== false; // default: true
 });
 
@@ -67,7 +103,9 @@ saveBtn.addEventListener('click', () => {
   const key    = apiKeyInput.value.trim();
   const prompt = promptInput.value.trim() || DEFAULT_PROMPT;
   const lang   = langSelect.value || detectBrowserLang();
-  const model  = modelInput.value.trim() || DEFAULT_MODEL;
+  const model  = modelSelect.value === MODEL_CUSTOM
+    ? (modelInput.value.trim() || DEFAULT_MODEL)
+    : modelSelect.value;
 
   if (!key) {
     statusEl.textContent = chrome.i18n.getMessage('msg_no_key');

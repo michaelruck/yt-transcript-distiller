@@ -81,7 +81,13 @@
     "message": "Gemini मॉडल"
   },
   "opt_model_hint": {
-    "message": "Gemini मॉडल ID, जैसे gemini-3.5-flash या gemini-flash-latest। उपलब्ध मॉडल:"
+    "message": "Flash-Lite डिफ़ॉल्ट मॉडल है। Flash और Pro की मुफ़्त सीमाएँ अधिक सख़्त हैं; Pro के लिए व्यावहारिक रूप से सशुल्क प्लान चाहिए। मॉडल संदर्भ:"
+  },
+  "opt_model_custom": {
+    "message": "कस्टम मॉडल ID…"
+  },
+  "err_switch_model": {
+    "message": "सुझाव: ऐड-ऑन सेटिंग्स में कोई दूसरा Gemini मॉडल चुनें।"
   },
   "lang_ar": {
     "message": "अरबी"
