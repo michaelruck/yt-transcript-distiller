@@ -36,6 +36,24 @@
   // --- DEFAULT GEMINI MODEL ---
   const DEFAULT_MODEL = 'gemini-3.5-flash';
 
+  // --- PLATFORM DETECTION ---
+  // m.youtube.com uses a completely different DOM (ytm-* elements) than www.
+  const IS_MOBILE = window.location.hostname === 'm.youtube.com';
+
+  // --- PAGE-CONTEXT PLAYER ACCESS ---
+  // Firefox content scripts see the page through Xray vision; wrappedJSObject
+  // exposes the real #movie_player element with its API (getVideoData,
+  // getAudioTrack, getPlayerResponse). Identical on www and m.youtube.com.
+  function getPagePlayer() {
+    try {
+      const player = window.wrappedJSObject.document.getElementById('movie_player');
+      if (player && typeof player.getVideoData === 'function') return player;
+    } catch (e) {
+      console.warn('[Transcript Debug] wrappedJSObject player access failed:', e);
+    }
+    return null;
+  }
+
   // --- DEFAULT RANDOM LISTS ---
   const DEFAULT_MOODS = [
     'neugierig', 'begeistert', 'nachdenklich', 'humorvoll',
@@ -49,14 +67,24 @@
   // --- DOM EXTRACTION HELPERS ---
   function getVideoTitle() {
     const el = document.querySelector('h1.ytd-video-primary-info-renderer, h1.style-scope.ytd-watch-metadata, ytd-watch-metadata h1');
-    return el ? el.textContent.trim() : '';
+    if (el) return el.textContent.trim();
+    try {
+      const vd = getPagePlayer()?.getVideoData();
+      if (vd && vd.title) return String(vd.title).trim();
+    } catch (e) { /* Player nicht bereit */ }
+    return '';
   }
 
   function getChannelName() {
     const el = document.querySelector(
       'ytd-channel-name yt-formatted-string, #channel-name yt-formatted-string, #owner #channel-name a'
     );
-    return el ? el.textContent.trim() : '';
+    if (el) return el.textContent.trim();
+    try {
+      const vd = getPagePlayer()?.getVideoData();
+      if (vd && vd.author) return String(vd.author).trim();
+    } catch (e) { /* Player nicht bereit */ }
+    return '';
   }
 
   // --- TEMPLATE REPLACEMENT ---
@@ -159,8 +187,15 @@
 
   // --- BETTER TARGET DETECTION ---
   function findTargetContainer() {
-    // Multiple selectors to try, combining Old and New UI injection points
-    const selectors = [
+    // Multiple selectors to try, combining Old and New UI injection points.
+    // m.youtube.com renders a completely different component tree (ytm-*).
+    const selectors = IS_MOBILE ? [
+      'ytm-slim-owner-renderer',
+      'ytm-slim-video-action-bar-renderer',
+      'ytm-slim-video-metadata-section-renderer',
+      '.slim-video-information-title',
+      'ytm-slim-video-metadata-renderer'
+    ] : [
       '#owner #subscribe-button',
       '#subscribe-button',
       'ytd-subscribe-button-renderer',
@@ -498,7 +533,8 @@
 
     // Wait for the target container to be available
     console.log("YouTube Transcript Copier: Waiting for target container...");
-    const targetContainer = await waitForElement('#owner #subscribe-button', 8000);
+    const primarySelector = IS_MOBILE ? 'ytm-slim-owner-renderer' : '#owner #subscribe-button';
+    const targetContainer = await waitForElement(primarySelector, 8000);
     
     // If the element wasn't found by the specific selector, try the alternatives
     if (!targetContainer) {
@@ -571,7 +607,8 @@
       targetContainer.parentNode.insertBefore(container, targetContainer.nextSibling);
       
       // Strategy 2: Force visibility with important styles
-      container.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; position: relative !important;';
+      container.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important; position: relative !important;'
+        + (IS_MOBILE ? ' margin: 8px 12px !important; gap: 4px !important;' : '');
       
       // Strategy 3: Add mutation observer to detect and counter removal
       if (window.transcriptProtectionObserver) {
@@ -922,7 +959,11 @@
   // --- COMMENT FIELD INJECTION LOGIC ---
   async function injectTextIntoCommentField(text) {
     // 1. Scroll to comments section to trigger lazy loading
-    const commentsSection = document.querySelector('#comments');
+    const commentsSection = document.querySelector(
+      IS_MOBILE
+        ? 'ytm-comment-section-renderer, [section-identifier="comment-item-section"], ytm-comments-entry-point-header-renderer'
+        : '#comments'
+    );
     if (!commentsSection) {
       throw new Error(chrome.i18n.getMessage('err_no_comments'));
     }
@@ -931,7 +972,9 @@
 
     // 2. Find and click the comment input placeholder to activate it
     const placeholder = await waitForElement(
-      '#simplebox-placeholder, ytd-comment-simplebox-renderer #placeholder-area',
+      IS_MOBILE
+        ? 'ytm-comments-entry-point-header-renderer, ytm-comments-simplebox-entry-renderer, .comments-entry-point-header, [class*="comments-entry-point"]'
+        : '#simplebox-placeholder, ytd-comment-simplebox-renderer #placeholder-area',
       6000
     );
     if (!placeholder) {
@@ -940,9 +983,12 @@
     placeholder.click();
     await new Promise(r => setTimeout(r, 800));
 
-    // 3. Find the actual contenteditable field that appears after clicking
+    // 3. Find the editor that appears after clicking. Desktop uses a
+    // contenteditable div; the mobile bottom sheet may use a textarea.
     const editor = await waitForElement(
-      '#contenteditable-root, ytd-comment-simplebox-renderer [contenteditable="true"]',
+      IS_MOBILE
+        ? 'ytm-commentbox textarea, textarea[aria-label], .comment-simplebox-reply-field, [contenteditable="true"]'
+        : '#contenteditable-root, ytd-comment-simplebox-renderer [contenteditable="true"]',
       5000
     );
     if (!editor) {
@@ -951,6 +997,14 @@
 
     editor.focus();
     await new Promise(r => setTimeout(r, 200));
+
+    // Textarea path (mobile): set the value directly and notify the framework
+    if (editor.tagName === 'TEXTAREA') {
+      editor.value = text;
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+      editor.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    }
 
     // 4. Clear existing content
     document.execCommand('selectAll', false, null);
@@ -1067,12 +1121,28 @@
 
   // --- EXTRACT VIDEO DESCRIPTION FROM PAGE ---
   function getVideoDescription() {
+    // Primary: full description straight from the player response —
+    // independent of DOM layout, no expander clicking, works on mobile.
+    try {
+      const player = getPagePlayer();
+      const pr = (player && typeof player.getPlayerResponse === 'function')
+        ? player.getPlayerResponse() : null;
+      const short = pr && pr.videoDetails && pr.videoDetails.shortDescription;
+      if (short && short.trim()) {
+        return short.trim().slice(0, 3000); // max 3000 Zeichen
+      }
+    } catch (e) {
+      console.warn('[Transcript Debug] Player description access failed:', e);
+    }
+
     const selectors = [
       '#description-inline-expander yt-attributed-string',
       '#description-inline-expander',
       '#snippet-text',
       'ytd-text-inline-expander yt-attributed-string',
       '#description .ytd-video-secondary-info-renderer',
+      'ytm-expandable-video-description-body-renderer',
+      '.unified-description',
     ];
     for (const sel of selectors) {
       const el = document.querySelector(sel);
@@ -1293,11 +1363,12 @@
           }
       }
 
-      const domTitle = document.querySelector("#title h1")?.textContent?.trim() || 
+      const domTitle = document.querySelector("#title h1")?.textContent?.trim() ||
                        document.querySelector("h1.ytd-watch-metadata")?.textContent?.trim();
 
-      const title = domTitle || 
-                    ytData?.videoDetails?.title || 
+      const title = domTitle ||
+                    getVideoTitle() ||
+                    ytData?.videoDetails?.title ||
                     document.querySelector('meta[name="title"]')?.content || 
                     document.title.replace(" - YouTube", "") || 
                     "Unknown Title";
@@ -1314,9 +1385,97 @@
       return [timestamp, text];
   }
 
+  // --- STRATEGY 0: CAPTION TRACKS FROM THE PLAYER ---
+  // The player exposes its caption track URLs via getAudioTrack(). Once the
+  // player has obtained its proof-of-origin token, the URL carries a "pot"
+  // parameter — without it the timedtext endpoint answers 200 with an empty
+  // body. Works identically on www and m.youtube.com.
+  function formatMs(ms) {
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      : `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  async function getTranscriptFromPlayer() {
+    const player = getPagePlayer();
+    if (!player || typeof player.getAudioTrack !== 'function') {
+      console.log("[Transcript Debug] Strategy 0: player or getAudioTrack() unavailable.");
+      return null;
+    }
+
+    let trackUrl = null;
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        const audioTrack = player.getAudioTrack();
+        const tracks = audioTrack && audioTrack.captionTracks;
+        if (tracks && tracks.length > 0) {
+          const raw = tracks[0].url || tracks[0].baseUrl;
+          if (raw) {
+            trackUrl = raw;
+            if (new URL(raw, window.location.origin).searchParams.has('pot')) break;
+          }
+        } else if (tracks && tracks.length === 0) {
+          console.log("[Transcript Debug] Strategy 0: player reports no caption tracks.");
+          return null;
+        }
+      } catch (e) {
+        console.warn("[Transcript Debug] Strategy 0: getAudioTrack() failed:", e);
+      }
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    if (!trackUrl) {
+      console.log("[Transcript Debug] Strategy 0: no caption track URL appeared.");
+      return null;
+    }
+
+    const url = new URL(trackUrl, window.location.origin);
+    url.searchParams.set('fmt', 'json3');
+    url.searchParams.set('c', IS_MOBILE ? 'MWEB' : 'WEB');
+
+    try {
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        console.warn(`[Transcript Debug] Strategy 0: timedtext returned ${res.status}`);
+        return null;
+      }
+      const bodyText = await res.text();
+      if (!bodyText) {
+        console.warn("[Transcript Debug] Strategy 0: empty timedtext body (pot token missing?).");
+        return null;
+      }
+      const data = JSON.parse(bodyText);
+      const events = (data.events || []).filter(ev => ev.segs && ev.segs.length);
+      if (!events.length) {
+        console.warn("[Transcript Debug] Strategy 0: json3 contained no caption events.");
+        return null;
+      }
+      console.log(`[Transcript Debug] Strategy 0 Success: ${events.length} caption events from player track.`);
+      return events
+        .map(ev => ({
+          transcriptSegmentRenderer: {
+            startTimeText: { simpleText: formatMs(ev.tStartMs || 0) },
+            snippet: { runs: [{ text: ev.segs.map(s => s.utf8 || '').join('').replace(/\s+/g, ' ').trim() }] }
+          }
+        }))
+        .filter(item => item.transcriptSegmentRenderer.snippet.runs[0].text);
+    } catch (e) {
+      console.warn("[Transcript Debug] Strategy 0: fetch/parse failed:", e);
+      return null;
+    }
+  }
+
   async function getTranscriptItems(ytData) {
     console.log("[Transcript Debug] Attempting to fetch transcript items...");
-    
+
+    // STRATEGY 0: Ask the player for its caption track (www + mobile)
+    const playerItems = await getTranscriptFromPlayer();
+    if (playerItems && playerItems.length > 0) return playerItems;
+
     // STRATEGY 1: Try the API first
     try {
       console.log("[Transcript Debug] Strategy 1: Attempting internal API fetch...");
