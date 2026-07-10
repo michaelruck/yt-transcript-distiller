@@ -4,13 +4,15 @@
 
 You open a video. Twelve minutes. You watch. You wait. The one insight you came for arrives at minute nine — buried under filler, recaps, and sponsor breaks.
 
-**YouTube Transcript Distiller** fetches the full transcript, sends it to Google Gemini AI, and posts a clean summary directly into the YouTube comment field. One click. The important points, right where other viewers can see them.
+**YouTube Transcript Distiller** fetches the full transcript and the video description, sends both to Google Gemini AI, and posts a clean summary directly into the YouTube comment field. One click. The important points, right where other viewers can see them.
 
 ---
 
 ## Features
 
 - **AI-powered summarization** via Google Gemini (free API key required)
+- **Transcript plus video description** — the summary draws on both, so context from the description flows in
+- **Silent transcript fetch** — reads the caption track straight from the player, no panel opens, no scrolling
 - **Posts directly into the YouTube comment field** — formatted and ready to publish
 - **Fully customizable prompt** — change the instruction to anything you want
 - **Configurable Gemini model** — default is `gemini-3.5-flash`, switchable in the settings without waiting for an add-on update
@@ -49,7 +51,8 @@ The add-on can be installed from [addons.mozilla.org](https://addons.mozilla.org
 YouTube Video
      │
      ▼
-Transcript fetch (YouTube Internal API → DOM fallback)
+Transcript + description fetch
+(player caption track → YouTube Internal API → DOM fallback)
      │
      ▼
 Google Gemini API (your API key, your quota)
@@ -89,7 +92,7 @@ Click **↺ Reset** to restore the default prompt at any time.
 
 ### Gemini model
 
-The **Gemini Model** field (gear icon or add-on settings page) accepts any model ID that supports `generateContent`, e.g. `gemini-3.5-flash`, `gemini-flash-latest`, or `gemini-3.1-flash-lite`. When Google retires a model — as happened with `gemini-2.5-flash` in July 2026 — enter a current ID from the [Gemini model list](https://ai.google.dev/gemini-api/docs/models) and keep going. If a model returns 503 "high demand", switching to `gemini-3.1-flash-lite` is a working fallback.
+The **Gemini Model** field (add-on settings page in `about:addons`) accepts any model ID that supports `generateContent`, e.g. `gemini-3.5-flash`, `gemini-flash-latest`, or `gemini-3.1-flash-lite`. When Google retires a model — as happened with `gemini-2.5-flash` in July 2026 — enter a current ID from the [Gemini model list](https://ai.google.dev/gemini-api/docs/models) and keep going. If a model returns 503 "high demand", switching to `gemini-3.1-flash-lite` is a working fallback.
 
 ---
 
