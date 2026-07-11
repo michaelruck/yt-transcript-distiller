@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Tipp: In den Add-on-Einstellungen ein anderes Gemini-Modell wählen."
   },
+  "err_copied_fallback": {
+    "message": "Die Zusammenfassung liegt in der Zwischenablage — manuell ins Kommentarfeld einfügen."
+  },
   "lang_ar": {
     "message": "Arabisch"
   },

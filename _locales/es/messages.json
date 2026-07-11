@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Consejo: elige otro modelo Gemini en los ajustes del complemento."
   },
+  "err_copied_fallback": {
+    "message": "El resumen está en el portapapeles — pégalo manualmente en el campo de comentarios."
+  },
   "lang_ar": {
     "message": "Árabe"
   },

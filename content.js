@@ -1098,15 +1098,20 @@
       // deshalb bewusst breite Kandidatenliste.
       editor = panel.querySelector('textarea, [contenteditable="true"]');
       if (!editor) {
-        const placeholder = panel.querySelector(
-          'ytm-comments-simplebox-entry-renderer, ytm-comment-simplebox-renderer, ' +
-          '[class*="simplebox" i], [class*="comment-composer" i], [class*="commentsEntryPoint" i]'
+        // Der sichtbare Composer ist ein Button (button.YtmCommentSimpleboxRendererReply,
+        // "Kommentar hinzufuegen..."); erst sein Klick erzeugt das textarea gleicher
+        // Klasse (ohne aria-label, nur placeholder). Verifiziert am Geraet
+        // (Galaxy A51, Firefox Nightly, eingeloggt, 2026-07-11).
+        const activator = panel.querySelector(
+          'button.YtmCommentSimpleboxRendererReply, ytm-comment-simplebox-renderer button, ' +
+          '[class*="simplebox" i] button, ytm-comments-simplebox-entry-renderer, [class*="commentsEntryPoint" i]'
         );
-        if (placeholder) {
-          placeholder.click();
+        if (activator) {
+          activator.click();
           await new Promise(r => setTimeout(r, 800));
         }
         editor = await waitForElement(
+          'textarea.YtmCommentSimpleboxRendererReply, ytm-comment-simplebox-renderer textarea, ' +
           'ytm-commentbox textarea, textarea[aria-label], [contenteditable="true"]',
           5000
         );
@@ -1149,7 +1154,11 @@
 
     // Textarea path (mobile): set the value directly and notify the framework
     if (editor.tagName === 'TEXTAREA') {
-      editor.value = text;
+      // Nativer Prototype-Setter: YouTubes Framework haengt eine eigene value-
+      // Property davor; direktes editor.value = ... erreicht dessen internen
+      // State nicht zuverlaessig.
+      const nativeSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set;
+      nativeSetter.call(editor, text);
       editor.dispatchEvent(new Event('input', { bubbles: true }));
       editor.dispatchEvent(new Event('change', { bubbles: true }));
       return true;
@@ -1404,7 +1413,18 @@
 
       // 5. Ins Kommentarfeld injizieren
       copyButton.textContent = chrome.i18n.getMessage('btn_injecting');
-      await injectTextIntoCommentField(finalText);
+      try {
+        await injectTextIntoCommentField(finalText);
+      } catch (injectErr) {
+        // Die Zusammenfassung existiert bereits — bei gescheiterter Injektion
+        // in die Zwischenablage legen statt sie wegzuwerfen.
+        let copied = false;
+        try {
+          await navigator.clipboard.writeText(finalText);
+          copied = true;
+        } catch (clipErr) { /* Clipboard nicht verfuegbar */ }
+        throw new Error(injectErr.message + (copied ? '\n\n' + chrome.i18n.getMessage('err_copied_fallback') : ''));
+      }
 
       // Statistik-Ping nur wenn Telemetrie aktiviert (default: an)
       chrome.storage.sync.get(['telemetryEnabled'], (r) => {

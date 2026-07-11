@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "提示：请在扩展设置中选择其他 Gemini 模型。"
   },
+  "err_copied_fallback": {
+    "message": "摘要已复制到剪贴板，请手动粘贴到评论框中。"
+  },
   "lang_ar": {
     "message": "阿拉伯语"
   },

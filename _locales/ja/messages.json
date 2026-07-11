@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "ヒント: アドオンの設定で別の Gemini モデルを選択してください。"
   },
+  "err_copied_fallback": {
+    "message": "要約はクリップボードにあります。コメント欄に手動で貼り付けてください。"
+  },
   "lang_ar": {
     "message": "アラビア語"
   },

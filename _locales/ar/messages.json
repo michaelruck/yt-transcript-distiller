@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "نصيحة: اختر نموذج Gemini آخر في إعدادات الإضافة."
   },
+  "err_copied_fallback": {
+    "message": "الملخص في الحافظة — الصقه يدويًا في حقل التعليق."
+  },
   "lang_ar": {
     "message": "العربية"
   },

@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Dica: escolha outro modelo Gemini nas configurações da extensão."
   },
+  "err_copied_fallback": {
+    "message": "O resumo está na área de transferência — cole-o manualmente no campo de comentários."
+  },
   "lang_ar": {
     "message": "Árabe"
   },

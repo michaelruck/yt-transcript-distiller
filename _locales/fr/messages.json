@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Astuce : choisissez un autre modèle Gemini dans les réglages du module."
   },
+  "err_copied_fallback": {
+    "message": "Le résumé est dans le presse-papiers — collez-le manuellement dans le champ de commentaire."
+  },
   "lang_ar": {
     "message": "Arabe"
   },

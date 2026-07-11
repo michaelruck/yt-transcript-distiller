@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Tip: choose a different Gemini model in the add-on settings."
   },
+  "err_copied_fallback": {
+    "message": "The summary is in the clipboard — paste it into the comment field manually."
+  },
   "lang_ar": {
     "message": "Arabic"
   },
