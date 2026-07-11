@@ -1161,6 +1161,11 @@
       nativeSetter.call(editor, text);
       editor.dispatchEvent(new Event('input', { bubbles: true }));
       editor.dispatchEvent(new Event('change', { bubbles: true }));
+      // MWEB rendert das Feld 84px hoch — zum Pruefen der Zusammenfassung zu
+      // klein, und der Resize-Griff ist mit dem Finger kaum zu treffen.
+      // 40vh am Geraet abgestimmt (2026-07-11).
+      editor.style.setProperty('height', '40vh', 'important');
+      editor.style.setProperty('max-height', '50vh', 'important');
       return true;
     }
 
@@ -1581,8 +1586,23 @@
       return null;
     }
 
+    // Vor der ersten Wiedergabe liefert der Player keine captionTracks bzw.
+    // kein pot-Token — ohne Autoplay (Handy) steht das Video bei 0:00 und
+    // Strategy 0 lief dort ins Leere (Geraete-Befund 2026-07-11). Der Klick
+    // auf den Distiller-Button ist eine User-Geste: die Wiedergabe darf
+    // einmalig angestossen und danach wieder pausiert werden. Ob das Video
+    // ueberhaupt Captions hat, verraet vorab die playerResponse.
+    let hasCaptionsInResponse = false;
+    try {
+      const pr = typeof player.getPlayerResponse === 'function' ? player.getPlayerResponse() : null;
+      const prTracks = pr && pr.captions && pr.captions.playerCaptionsTracklistRenderer
+        && pr.captions.playerCaptionsTracklistRenderer.captionTracks;
+      hasCaptionsInResponse = !!(prTracks && prTracks.length);
+    } catch (e) { /* playerResponse nicht lesbar — weiter mit getAudioTrack */ }
+
+    let nudgedPlayback = false;
     let trackUrl = null;
-    for (let attempt = 0; attempt < 8; attempt++) {
+    for (let attempt = 0; attempt < 10; attempt++) {
       try {
         const audioTrack = player.getAudioTrack();
         const tracks = audioTrack && audioTrack.captionTracks;
@@ -1592,14 +1612,30 @@
             trackUrl = raw;
             if (new URL(raw, window.location.origin).searchParams.has('pot')) break;
           }
-        } else if (tracks && tracks.length === 0) {
-          console.log("[Transcript Debug] Strategy 0: player reports no caption tracks.");
+        } else if (tracks && tracks.length === 0 && !hasCaptionsInResponse) {
+          console.log("[Transcript Debug] Strategy 0: no caption tracks anywhere — video has no subtitles.");
           return null;
         }
       } catch (e) {
         console.warn("[Transcript Debug] Strategy 0: getAudioTrack() failed:", e);
       }
+      if (!nudgedPlayback && attempt >= 1 && typeof player.playVideo === 'function') {
+        // Player-States: 1 = playing, 3 = buffering — dann laeuft schon
+        // etwas, nichts anfassen und am Ende auch nicht pausieren.
+        let state = -99;
+        try { state = typeof player.getPlayerState === 'function' ? player.getPlayerState() : -99; } catch (e) {}
+        if (state !== 1 && state !== 3) {
+          nudgedPlayback = true;
+          try {
+            player.playVideo();
+            console.log("[Transcript Debug] Strategy 0: nudging playback to obtain the pot token.");
+          } catch (e) { /* Wiedergabe verweigert — Fehlermeldung raet zum manuellen Anspielen */ }
+        }
+      }
       await new Promise(r => setTimeout(r, 1000));
+    }
+    if (nudgedPlayback) {
+      try { player.pauseVideo(); } catch (e) { /* Zustand nicht kritisch */ }
     }
 
     if (!trackUrl) {
@@ -1715,6 +1751,12 @@
     const domItems = await scrapeTranscriptFromDOM();
     if (domItems) return domItems;
 
+    if (IS_MOBILE) {
+      // Auf m.youtube.com gibt es kein Transkript-Panel zum manuellen Oeffnen —
+      // der Desktop-Hinweis waere irrefuehrend. Haeufigste Ursache dort:
+      // pot-Token fehlt, weil das Video noch nie lief.
+      throw new Error(chrome.i18n.getMessage('err_no_transcript') + '\n\n' + chrome.i18n.getMessage('err_play_video'));
+    }
     throw new Error("Transcript panel not available. Try opening the transcript manually, then click the button again.");
   }
 

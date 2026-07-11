@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "Le résumé est dans le presse-papiers — collez-le manuellement dans le champ de commentaire."
   },
+  "err_play_video": {
+    "message": "Astuce : lancez la vidéo un instant, puis réessayez."
+  },
   "lang_ar": {
     "message": "Arabe"
   },

@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "El resumen está en el portapapeles — pégalo manualmente en el campo de comentarios."
   },
+  "err_play_video": {
+    "message": "Consejo: reproduce el vídeo un momento y vuelve a intentarlo."
+  },
   "lang_ar": {
     "message": "Árabe"
   },

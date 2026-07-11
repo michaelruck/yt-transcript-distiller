@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "The summary is in the clipboard — paste it into the comment field manually."
   },
+  "err_play_video": {
+    "message": "Tip: play the video for a moment, then try again."
+  },
   "lang_ar": {
     "message": "Arabic"
   },

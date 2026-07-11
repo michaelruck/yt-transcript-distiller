@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "摘要已复制到剪贴板，请手动粘贴到评论框中。"
   },
+  "err_play_video": {
+    "message": "提示：请先播放视频片刻，然后重试。"
+  },
   "lang_ar": {
     "message": "阿拉伯语"
   },

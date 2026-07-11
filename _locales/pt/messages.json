@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "O resumo está na área de transferência — cole-o manualmente no campo de comentários."
   },
+  "err_play_video": {
+    "message": "Dica: reproduza o vídeo por um momento e tente novamente."
+  },
   "lang_ar": {
     "message": "Árabe"
   },

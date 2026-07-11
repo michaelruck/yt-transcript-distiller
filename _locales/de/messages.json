@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "Die Zusammenfassung liegt in der Zwischenablage — manuell ins Kommentarfeld einfügen."
   },
+  "err_play_video": {
+    "message": "Tipp: Video kurz anspielen und erneut versuchen."
+  },
   "lang_ar": {
     "message": "Arabisch"
   },

@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "요약이 클립보드에 복사되었습니다. 댓글 입력란에 직접 붙여넣으세요."
   },
+  "err_play_video": {
+    "message": "팁: 영상을 잠깐 재생한 뒤 다시 시도하세요."
+  },
   "lang_ar": {
     "message": "아랍어"
   },

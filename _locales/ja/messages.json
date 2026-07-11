@@ -95,6 +95,9 @@
   "err_copied_fallback": {
     "message": "要約はクリップボードにあります。コメント欄に手動で貼り付けてください。"
   },
+  "err_play_video": {
+    "message": "ヒント: 動画を少し再生してから、もう一度お試しください。"
+  },
   "lang_ar": {
     "message": "アラビア語"
   },
