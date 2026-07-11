@@ -28,6 +28,11 @@ LANG_CODES.sort((a, b) => {
 const DEFAULT_PROMPT = chrome.i18n.getMessage('default_prompt');
 const DEFAULT_MODEL  = 'gemini-flash-lite-latest';
 
+// Muss mit PROMPT_GENERATION in content.js übereinstimmen. Bei jeder
+// Verbesserung des Default-Prompts hochzählen, damit der Hinweis für
+// Nutzer mit eigenem Prompt erneut erscheint.
+const PROMPT_GENERATION = 3;
+
 // Kuratierte Alias-IDs statt ListModels: die Aliase wandern automatisch zur
 // jeweils neuesten Version, und die Rohliste der API enthält TTS-/Bild-/
 // Musikmodelle ohne Abschalt-Flag (Entscheidung 2026-07-10).
@@ -73,13 +78,27 @@ const resetBtn    = document.getElementById('resetPrompt');
 
 const telemetryCheckbox = document.getElementById('telemetryEnabled');
 
+const promptNotice   = document.getElementById('promptNotice');
+const dismissNotice  = document.getElementById('dismissPromptNotice');
+
+dismissNotice.addEventListener('click', () => {
+  promptNotice.className = 'notice';
+  chrome.storage.sync.set({ promptNoticeSeen: PROMPT_GENERATION });
+});
+
 // Load existing values
-chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'distillerModel', 'telemetryEnabled'], (result) => {
+chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'distillerModel', 'telemetryEnabled', 'promptNoticeSeen'], (result) => {
   if (result.geminiApiKey) apiKeyInput.value = result.geminiApiKey;
   promptInput.value = result.distillerPrompt || DEFAULT_PROMPT;
   langSelect.value  = result.distillerLang   || detectBrowserLang();
   setModelUi((result.distillerModel || DEFAULT_MODEL).trim());
   telemetryCheckbox.checked = result.telemetryEnabled !== false; // default: true
+
+  // Eigener Prompt gespeichert → auf den verbesserten Default hinweisen
+  const hasCustomPrompt = result.distillerPrompt && result.distillerPrompt.trim() !== DEFAULT_PROMPT.trim();
+  if (hasCustomPrompt && result.promptNoticeSeen !== PROMPT_GENERATION) {
+    promptNotice.className = 'notice visible';
+  }
 });
 
 // Toggle show/hide API key
@@ -114,7 +133,17 @@ saveBtn.addEventListener('click', () => {
     return;
   }
 
-  chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, distillerModel: model, telemetryEnabled: telemetryCheckbox.checked }, () => {
+  // Den Default-Prompt nicht persistieren: nur ein tatsächlich angepasster
+  // Prompt wird gespeichert, sonst friert jeder Save den heutigen Default ein
+  // und künftige Prompt-Verbesserungen erreichen den Nutzer nie (v1.5.2-Fix).
+  const data = { geminiApiKey: key, distillerLang: lang, distillerModel: model, telemetryEnabled: telemetryCheckbox.checked };
+  if (prompt === DEFAULT_PROMPT.trim()) {
+    chrome.storage.sync.remove('distillerPrompt');
+  } else {
+    data.distillerPrompt = prompt;
+  }
+
+  chrome.storage.sync.set(data, () => {
     if (chrome.runtime.lastError) {
       statusEl.textContent = chrome.i18n.getMessage('msg_save_error');
       statusEl.className = 'status error visible';
@@ -155,10 +184,19 @@ resetStyleBtn.addEventListener('click', () => {
   styleListArea.value = DEFAULT_STYLES.join('\n');
 });
 
-// Include lists in save
-const originalSave = saveBtn.onclick;
+// Include lists in save — Defaults nicht persistieren (siehe Prompt-Kommentar oben)
 saveBtn.addEventListener('click', () => {
   const moodList  = moodListArea.value.split('\n').map(s => s.trim()).filter(Boolean);
   const styleList = styleListArea.value.split('\n').map(s => s.trim()).filter(Boolean);
-  chrome.storage.local.set({ moodList, styleList });
+
+  if (moodList.join('\n') === DEFAULT_MOODS.join('\n')) {
+    chrome.storage.local.remove('moodList');
+  } else {
+    chrome.storage.local.set({ moodList });
+  }
+  if (styleList.join('\n') === DEFAULT_STYLES.join('\n')) {
+    chrome.storage.local.remove('styleList');
+  } else {
+    chrome.storage.local.set({ styleList });
+  }
 });

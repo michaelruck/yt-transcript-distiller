@@ -40,6 +40,64 @@
   // m.youtube.com uses a completely different DOM (ytm-* elements) than www.
   const IS_MOBILE = window.location.hostname === 'm.youtube.com';
 
+  // --- LEGACY DEFAULT PROMPT MIGRATION (v1.5.2) ---
+  // Bis v1.5.1 hat jeder Save den Feldinhalt persistiert — auch den unver-
+  // aenderten Default-Prompt. Damit fror jeder Nutzer den damals aktuellen
+  // Default ein und Prompt-Verbesserungen kamen nie an. Hier: SHA-256-Hashes
+  // aller frueheren Default-Prompts (v1.3.x und v1.4.0–v1.5.1, alle 11
+  // Sprachen). Ein gespeicherter Prompt, der exakt einem alten Default
+  // entspricht, war nie eine bewusste Anpassung und wird entfernt, damit der
+  // aktuelle Default greift. Angepasste Prompts bleiben unberuehrt.
+  const LEGACY_PROMPT_HASHES = new Set([
+    '0c6d0b13b4f405fb982565ff37a3939d44d5d9181e141b36fbb05b7f63d74f44',
+    '1f13e4fd2c25888518b84cef84562315cb9e27c90c14c1bdf8140392ea78245a',
+    '318a720693dc28e17b71b5719943af457dbe33efa1e8018e7d7106df693217c1',
+    '4066489905e16616fe60efeecc9a3bedf56477936a44a73b240efc0e41cda704',
+    '420742cd1aee9d5036eaed6667529ad7fc14839b8f5adb6b2fd011520aeef8bd',
+    '431256c8a468bf08d04e48df2c3d24400c80b4176fd43b2eb2fb28cd77f4159f',
+    '555fef4ec8e3972c32d5a82b9fe281f6d0666793fb65cf76acaa0606315ccc7a',
+    '56f809b71bfdf75d56390d56e83a52c40907b7976faf234af90f106dd5744eba',
+    '6cdadf6ad95014d18521863531bc5e886f5cf5823963bb64ba61c520e904f4e2',
+    '6d2aabd15afb1bf003f537aef60920b4b6fbfe53b1db6dbd5de11fd68eb65a26',
+    '8f6d57a80a536dc16a8d71e9bbde6a24f2c8bffc8870ac65ade8d024be9afe16',
+    '8fd443181a3bb26313a41fbb3fe2103fe5877e30032be253061d387eb1914be7',
+    '926743674547cc9acebdfe8779c86b680d56b214516ef6701abdbf9fc76044b5',
+    '9ba229739acd9a79609b9fefdc37eeec393437f00b164e185720f99d3c45e23b',
+    'a257630dc5e1ec69346e58173cc4264e639f28c59307d33da9f035cc3151baa0',
+    'b78aab05ada81cc718efebc5532ac68c8023ee9e6d862d63fb13809fc8c4c333',
+    'b988db75f047109dbb4d88dd5a634761d6afd3275a434518e32722e817768142',
+    'beea8b621b86843ab2e0683d684b1199f71929e69eae1e51caae2e75c11dcec8',
+    'c293f336914b8839ea11a431429be2ea850f54882fa9069916c0fed99ef29ca8',
+    'e1013b0fd670765f9fdd8120b312792de59ec12a24d4cc16259d6122801c58b5',
+    'e123cc7d6e303e7b89fabe26b18074fe0aee48fee96ea9c1419796bcae2c32ca',
+    'ef95d84d928c64f3877de8a46948a6f2d99df5fec73e7f4040622b6eaac2df1a',
+  ]);
+
+  // Muss mit PROMPT_GENERATION in options.js übereinstimmen. Bei jeder
+  // Verbesserung des Default-Prompts hochzählen, damit der Hinweis für
+  // Nutzer mit eigenem Prompt erneut erscheint.
+  const PROMPT_GENERATION = 3;
+
+  async function sha256Hex(text) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function migrateLegacyDefaultPrompt() {
+    try {
+      const r = await new Promise(res => chrome.storage.sync.get(['distillerPrompt'], res));
+      if (!r.distillerPrompt) return;
+      const hash = await sha256Hex(r.distillerPrompt.trim());
+      if (LEGACY_PROMPT_HASHES.has(hash)) {
+        chrome.storage.sync.remove('distillerPrompt');
+        console.log('[Transcript Distiller] Alter Default-Prompt erkannt — auf aktuellen Default migriert.');
+      }
+    } catch (e) {
+      console.warn('[Transcript Distiller] Prompt-Migration fehlgeschlagen:', e);
+    }
+  }
+  migrateLegacyDefaultPrompt();
+
   // --- PAGE-CONTEXT PLAYER ACCESS ---
   // Firefox content scripts see the page through Xray vision; wrappedJSObject
   // exposes the real #movie_player element with its API (getVideoData,
@@ -130,6 +188,11 @@
   let isInjected = false;
   let injectionAttempts = 0;
   let urlChangeTimeout = null;
+  // Verhindert parallele injectButton()-Läufe: auf m.youtube.com wartet
+  // waitForElement sekundenlang, währenddessen starten Retry-Timer, Mutation-
+  // Observer und visibilitychange weitere Läufe — jeder fügt dann einen
+  // eigenen Button ein (v1.5.0/1.5.1-Bug am Handy).
+  let injectionInProgress = false;
 
   // --- ADBLOCKER RESISTANCE STRATEGIES ---
   
@@ -189,12 +252,12 @@
   function findTargetContainer() {
     // Multiple selectors to try, combining Old and New UI injection points.
     // m.youtube.com renders a completely different component tree (ytm-*).
+    // Mobile Tags gegen das echte MWEB-DOM verifiziert (headless, 2026-07-11);
+    // ytm-slim-owner-renderer existiert dort nicht mehr.
     const selectors = IS_MOBILE ? [
-      'ytm-slim-owner-renderer',
       'ytm-slim-video-action-bar-renderer',
       'ytm-slim-video-metadata-section-renderer',
-      '.slim-video-information-title',
-      'ytm-slim-video-metadata-renderer'
+      'ytm-slim-video-information-renderer'
     ] : [
       '#owner #subscribe-button',
       '#subscribe-button',
@@ -521,33 +584,45 @@
 
   // --- CORE UI INJECTION WITH ENHANCED RELIABILITY ---
   async function injectButton() {
-    injectionAttempts++;
-    console.log(`YouTube Transcript Copier: Injection attempt ${injectionAttempts}`);
-
-    // Check if our button is already on the page
-    if (document.getElementById(randomContainerId)) {
-      console.log("YouTube Transcript Copier: Button already exists");
-      isInjected = true;
-      return true;
+    // Läuft bereits eine Injektion (waitForElement kann Sekunden dauern),
+    // keinen zweiten Lauf starten — sonst entstehen mehrere Buttons.
+    if (injectionInProgress) {
+      return false;
     }
+    injectionInProgress = true;
+    try {
+      injectionAttempts++;
+      console.log(`YouTube Transcript Copier: Injection attempt ${injectionAttempts}`);
 
-    // Wait for the target container to be available
-    console.log("YouTube Transcript Copier: Waiting for target container...");
-    const primarySelector = IS_MOBILE ? 'ytm-slim-owner-renderer' : '#owner #subscribe-button';
-    const targetContainer = await waitForElement(primarySelector, 8000);
-    
-    // If the element wasn't found by the specific selector, try the alternatives
-    if (!targetContainer) {
-      console.log("YouTube Transcript Copier: Target container not found, trying alternative selectors");
-      const altTarget = findTargetContainer();
-      if (!altTarget) {
-        console.log("YouTube Transcript Copier: No suitable target found");
-        return false;
+      // Check if our button is already on the page
+      if (document.getElementById(randomContainerId)) {
+        console.log("YouTube Transcript Copier: Button already exists");
+        isInjected = true;
+        return true;
       }
-      return await injectIntoTarget(altTarget);
-    }
 
-    return await injectIntoTarget(targetContainer);
+      // Wait for the target container to be available
+      console.log("YouTube Transcript Copier: Waiting for target container...");
+      // ytm-slim-video-action-bar-renderer existiert im echten MWEB-DOM
+      // (verifiziert 2026-07-11); ytm-slim-owner-renderer gibt es dort nicht.
+      const primarySelector = IS_MOBILE ? 'ytm-slim-video-action-bar-renderer' : '#owner #subscribe-button';
+      const targetContainer = await waitForElement(primarySelector, 8000);
+
+      // If the element wasn't found by the specific selector, try the alternatives
+      if (!targetContainer) {
+        console.log("YouTube Transcript Copier: Target container not found, trying alternative selectors");
+        const altTarget = findTargetContainer();
+        if (!altTarget) {
+          console.log("YouTube Transcript Copier: No suitable target found");
+          return false;
+        }
+        return await injectIntoTarget(altTarget);
+      }
+
+      return await injectIntoTarget(targetContainer);
+    } finally {
+      injectionInProgress = false;
+    }
   }
 
   async function injectIntoTarget(targetContainer) {
@@ -555,6 +630,11 @@
     if (!targetContainer || !targetContainer.parentNode) {
       console.log("YouTube Transcript Copier: Target or parent missing, skipping injection");
       return false;
+    }
+    // Doppelter Boden gegen Duplikate: existiert der Button inzwischen, nichts einfügen
+    if (document.getElementById(randomContainerId)) {
+      isInjected = true;
+      return true;
     }
     try {
       // Create styles first
@@ -819,12 +899,30 @@
     resetBtn.textContent = chrome.i18n.getMessage('btn_reset');
     promptHeader.appendChild(promptLabel);
     promptHeader.appendChild(resetBtn);
+
+    // Hinweis auf verbesserten Default-Prompt (nur bei gespeichertem Custom-Prompt)
+    const promptNotice = document.createElement('div');
+    promptNotice.id = 'td-prompt-notice';
+    promptNotice.style.cssText = 'display:none; align-items:flex-start; gap:10px; width:100%; box-sizing:border-box; background:rgba(62,166,255,0.12); border:1px solid #3ea6ff; border-radius:6px; color:var(--yt-trans-text); font-size:12px; padding:8px 10px; line-height:1.4;';
+    const promptNoticeText = document.createElement('span');
+    promptNoticeText.textContent = chrome.i18n.getMessage('opt_prompt_notice');
+    const promptNoticeClose = document.createElement('button');
+    promptNoticeClose.textContent = '×';
+    promptNoticeClose.style.cssText = 'background:none; border:none; color:#aaa; font-size:16px; line-height:1; cursor:pointer; padding:0; margin-left:auto;';
+    promptNoticeClose.addEventListener('click', () => {
+      promptNotice.style.display = 'none';
+      chrome.storage.sync.set({ promptNoticeSeen: PROMPT_GENERATION });
+    });
+    promptNotice.appendChild(promptNoticeText);
+    promptNotice.appendChild(promptNoticeClose);
+
     const promptArea = document.createElement('textarea');
     promptArea.id = 'td-prompt';
     promptArea.rows = 4;
     promptArea.spellcheck = false;
     promptArea.style.cssText = 'width:100%; box-sizing:border-box; background:var(--yt-trans-bg); border:1px solid var(--yt-trans-border); border-radius:6px; color:var(--yt-trans-text); font-size:13px; padding:7px 10px; outline:none; resize:vertical; font-family:Roboto,Arial,sans-serif; line-height:1.5;';
     promptSection.appendChild(promptHeader);
+    promptSection.appendChild(promptNotice);
     promptSection.appendChild(promptArea);
     modal.appendChild(promptSection);
 
@@ -852,7 +950,7 @@
     document.body.appendChild(overlay);
 
     // Load current values — hide API section if key already set
-    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'invalidKey'], (r) => {
+    chrome.storage.sync.get(['geminiApiKey', 'distillerPrompt', 'distillerLang', 'invalidKey', 'promptNoticeSeen'], (r) => {
       const hasKey = !!(r.geminiApiKey && r.geminiApiKey.trim());
       const keyInvalid = !!(r.invalidKey);
 
@@ -872,6 +970,12 @@
 
       document.getElementById('td-prompt').value = r.distillerPrompt || DEFAULT_DISTILLER_PROMPT;
       document.getElementById('td-lang').value = r.distillerLang || detectBrowserLang();
+
+      // Eigener Prompt gespeichert → auf den verbesserten Default hinweisen
+      const hasCustomPrompt = r.distillerPrompt && r.distillerPrompt.trim() !== DEFAULT_DISTILLER_PROMPT.trim();
+      if (hasCustomPrompt && r.promptNoticeSeen !== PROMPT_GENERATION) {
+        promptNotice.style.display = 'flex';
+      }
     });
 
     // Reset prompt to default
@@ -899,9 +1003,17 @@
       const lang   = document.getElementById('td-lang').value || detectBrowserLang();
       const status = document.getElementById('td-status');
 
+      // Den Default-Prompt nicht persistieren: nur ein tatsächlich angepasster
+      // Prompt wird gespeichert, sonst friert jeder Save den heutigen Default
+      // ein und Prompt-Verbesserungen erreichen den Nutzer nie (v1.5.2-Fix).
+      const promptIsDefault = prompt === DEFAULT_DISTILLER_PROMPT.trim();
+      if (promptIsDefault) chrome.storage.sync.remove('distillerPrompt');
+
       // If API section hidden, save without touching the key
       if (apiSection.style.display === 'none') {
-        chrome.storage.sync.set({ distillerPrompt: prompt, distillerLang: lang }, () => {
+        const data = { distillerLang: lang };
+        if (!promptIsDefault) data.distillerPrompt = prompt;
+        chrome.storage.sync.set(data, () => {
           if (chrome.runtime.lastError) {
             status.style.color = '#f87171';
             status.textContent = chrome.i18n.getMessage('msg_save_error');
@@ -921,7 +1033,9 @@
         return;
       }
 
-      chrome.storage.sync.set({ geminiApiKey: key, distillerPrompt: prompt, distillerLang: lang, invalidKey: false }, () => {
+      const data = { geminiApiKey: key, distillerLang: lang, invalidKey: false };
+      if (!promptIsDefault) data.distillerPrompt = prompt;
+      chrome.storage.sync.set(data, () => {
         if (chrome.runtime.lastError) {
           status.style.color = '#f87171';
           status.textContent = chrome.i18n.getMessage('msg_save_error');
@@ -935,42 +1049,99 @@
   }
 
   // --- COMMENT FIELD INJECTION LOGIC ---
+  // m.youtube.com rendert Kommentare in einem Engagement-Panel (Bottom-Sheet,
+  // ytm-engagement-panel-section-list-renderer.engagement-panel-comments-section),
+  // geöffnet über einen Teaser unter dem Video. Beides verifiziert gegen das
+  // echte MWEB-DOM (headless, 2026-07-11). Die Sektion existiert erst im DOM,
+  // wenn das Panel offen ist — deshalb öffnet der Distiller es selbst, statt
+  // den Nutzer vorab hinscrollen zu lassen.
+  const MOBILE_COMMENTS_PANEL_SELECTOR =
+    'ytm-engagement-panel-section-list-renderer.engagement-panel-comments-section, ' +
+    '[section-identifier="comment-item-section"], ytm-comment-section-renderer';
+
+  async function openMobileCommentsPanel() {
+    let panel = document.querySelector(MOBILE_COMMENTS_PANEL_SELECTOR);
+    if (panel) return panel;
+
+    // Teaser unter dem Video; rendert lazy — notfalls schrittweise scrollen
+    const teaserSelector =
+      'comments-entry-point-teaser-view-model, .ytCommentsEntryPointTeaserViewModelHost, ' +
+      'yt-comment-teaser-carousel-item-view-model, ytm-comments-entry-point-header-renderer';
+    let teaser = document.querySelector(teaserSelector);
+    for (let i = 0; !teaser && i < 6; i++) {
+      window.scrollBy(0, 500);
+      await new Promise(r => setTimeout(r, 500));
+      teaser = document.querySelector(teaserSelector);
+    }
+    if (!teaser) return null; // Kommentare deaktiviert oder DOM erneut geändert
+
+    teaser.scrollIntoView({ block: 'center' });
+    await new Promise(r => setTimeout(r, 400));
+    teaser.click();
+    return await waitForElement(MOBILE_COMMENTS_PANEL_SELECTOR, 8000);
+  }
+
   async function injectTextIntoCommentField(text) {
-    // 1. Scroll to comments section to trigger lazy loading
-    const commentsSection = document.querySelector(
-      IS_MOBILE
-        ? 'ytm-comment-section-renderer, [section-identifier="comment-item-section"], ytm-comments-entry-point-header-renderer'
-        : '#comments'
-    );
-    if (!commentsSection) {
-      throw new Error(chrome.i18n.getMessage('err_no_comments'));
-    }
-    commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    await new Promise(r => setTimeout(r, 1200));
+    let editor;
 
-    // 2. Find and click the comment input placeholder to activate it
-    const placeholder = await waitForElement(
-      IS_MOBILE
-        ? 'ytm-comments-entry-point-header-renderer, ytm-comments-simplebox-entry-renderer, .comments-entry-point-header, [class*="comments-entry-point"]'
-        : '#simplebox-placeholder, ytd-comment-simplebox-renderer #placeholder-area',
-      6000
-    );
-    if (!placeholder) {
-      throw new Error(chrome.i18n.getMessage('err_no_field'));
-    }
-    placeholder.click();
-    await new Promise(r => setTimeout(r, 800));
+    if (IS_MOBILE) {
+      // 1. Kommentar-Panel öffnen (oder wiederfinden, falls schon offen)
+      const panel = await openMobileCommentsPanel();
+      if (!panel) {
+        throw new Error(chrome.i18n.getMessage('err_no_comments'));
+      }
+      await new Promise(r => setTimeout(r, 800));
 
-    // 3. Find the editor that appears after clicking. Desktop uses a
-    // contenteditable div; the mobile bottom sheet may use a textarea.
-    const editor = await waitForElement(
-      IS_MOBILE
-        ? 'ytm-commentbox textarea, textarea[aria-label], .comment-simplebox-reply-field, [contenteditable="true"]'
-        : '#contenteditable-root, ytd-comment-simplebox-renderer [contenteditable="true"]',
-      5000
-    );
-    if (!editor) {
-      throw new Error(chrome.i18n.getMessage('err_no_editor'));
+      // 2. Composer aktivieren: entweder liegt das Feld schon im Panel,
+      // oder ein Platzhalter ("Kommentar hinzufügen") muss geklickt werden.
+      // Der eingeloggte Composer ließ sich headless nicht verifizieren —
+      // deshalb bewusst breite Kandidatenliste.
+      editor = panel.querySelector('textarea, [contenteditable="true"]');
+      if (!editor) {
+        const placeholder = panel.querySelector(
+          'ytm-comments-simplebox-entry-renderer, ytm-comment-simplebox-renderer, ' +
+          '[class*="simplebox" i], [class*="comment-composer" i], [class*="commentsEntryPoint" i]'
+        );
+        if (placeholder) {
+          placeholder.click();
+          await new Promise(r => setTimeout(r, 800));
+        }
+        editor = await waitForElement(
+          'ytm-commentbox textarea, textarea[aria-label], [contenteditable="true"]',
+          5000
+        );
+      }
+      if (!editor) {
+        throw new Error(chrome.i18n.getMessage('err_no_editor'));
+      }
+    } else {
+      // 1. Scroll to comments section to trigger lazy loading
+      const commentsSection = document.querySelector('#comments');
+      if (!commentsSection) {
+        throw new Error(chrome.i18n.getMessage('err_no_comments'));
+      }
+      commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      await new Promise(r => setTimeout(r, 1200));
+
+      // 2. Find and click the comment input placeholder to activate it
+      const placeholder = await waitForElement(
+        '#simplebox-placeholder, ytd-comment-simplebox-renderer #placeholder-area',
+        6000
+      );
+      if (!placeholder) {
+        throw new Error(chrome.i18n.getMessage('err_no_field'));
+      }
+      placeholder.click();
+      await new Promise(r => setTimeout(r, 800));
+
+      // 3. Find the editor that appears after clicking
+      editor = await waitForElement(
+        '#contenteditable-root, ytd-comment-simplebox-renderer [contenteditable="true"]',
+        5000
+      );
+      if (!editor) {
+        throw new Error(chrome.i18n.getMessage('err_no_editor'));
+      }
     }
 
     editor.focus();
