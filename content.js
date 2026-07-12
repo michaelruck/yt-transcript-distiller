@@ -45,7 +45,7 @@
   // aenderten Default-Prompt. Damit fror jeder Nutzer den damals aktuellen
   // Default ein und Prompt-Verbesserungen kamen nie an. Hier: SHA-256-Hashes
   // aller frueheren Default-Prompts (v1.3.x und v1.4.0–v1.5.1, alle 11
-  // Sprachen). Ein gespeicherter Prompt, der exakt einem alten Default
+  // Sprachen, dazu v1.5.2 bis v1.5.4). Ein gespeicherter Prompt, der exakt einem alten Default
   // entspricht, war nie eine bewusste Anpassung und wird entfernt, damit der
   // aktuelle Default greift. Angepasste Prompts bleiben unberuehrt.
   const LEGACY_PROMPT_HASHES = new Set([
@@ -71,12 +71,25 @@
     'e1013b0fd670765f9fdd8120b312792de59ec12a24d4cc16259d6122801c58b5',
     'e123cc7d6e303e7b89fabe26b18074fe0aee48fee96ea9c1419796bcae2c32ca',
     'ef95d84d928c64f3877de8a46948a6f2d99df5fec73e7f4040622b6eaac2df1a',
+    // Defaults v1.5.2 bis v1.5.4 (Generation 3), abgeloest durch die
+    // Zeichenregel (kein Geviertstrich etc.) in Generation 4:
+    '3443294a6fb4a057210d381b87b0cdf09a3b644a530c50706f8bad2871b51ac1',
+    '77fe70fe2ad785dab3d4b9f57ac347de3406812c810403ed398654b32ba901b7',
+    '8adccb91c8727eb83d29e6278693f713c54d54cedef35a7084a6ee250d6b2a81',
+    '9f28cf10f5ef62e869b1bf886a6f845df7630c943159466527cfe5659d860b67',
+    'c2ea01ea0349830043e3250d2846dab78a330828322c18a4b7fbeb7eeaf0d72a',
+    'cd57b6306fbd9a36acf2238fedf093d038df3ecd490392d1c6547c4bf028d22b',
+    'e6b5cadde760c7be91dc5e487c3bc2bcce3181795d94394269ecba25db7a0259',
+    'ea86f9ea351b90a37bc418cdcec69bcf21f687fbb3bf1866c8e02e59245b918e',
+    'f0081d148a5246d009920140f6e86c72be7520bab1c8470b2b5c1b7954f960d4',
+    'fb650d4b831fca3585bf2b5acbd7c9888aa27acad13a172dcebc6e8bc02f6386',
+    'ffd65f540a6a9e1b396cf17a3149ee858f2a6809cd988b0b11632c6f6f5d5bba',
   ]);
 
   // Muss mit PROMPT_GENERATION in options.js übereinstimmen. Bei jeder
   // Verbesserung des Default-Prompts hochzählen, damit der Hinweis für
   // Nutzer mit eigenem Prompt erneut erscheint.
-  const PROMPT_GENERATION = 3;
+  const PROMPT_GENERATION = 4;
 
   async function sha256Hex(text) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
@@ -1011,7 +1024,9 @@
 
       // If API section hidden, save without touching the key
       if (apiSection.style.display === 'none') {
-        const data = { distillerLang: lang };
+        // Save gilt als "aktuelle Generation gesehen": ein danach angepasster
+        // Prompt loest den Default-Verbesserungs-Hinweis nicht mehr aus.
+        const data = { distillerLang: lang, promptNoticeSeen: PROMPT_GENERATION };
         if (!promptIsDefault) data.distillerPrompt = prompt;
         chrome.storage.sync.set(data, () => {
           if (chrome.runtime.lastError) {
@@ -1033,7 +1048,7 @@
         return;
       }
 
-      const data = { geminiApiKey: key, distillerLang: lang, invalidKey: false };
+      const data = { geminiApiKey: key, distillerLang: lang, invalidKey: false, promptNoticeSeen: PROMPT_GENERATION };
       if (!promptIsDefault) data.distillerPrompt = prompt;
       chrome.storage.sync.set(data, () => {
         if (chrome.runtime.lastError) {
@@ -1266,7 +1281,22 @@
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!text) throw new Error("Gemini hat keine verwertbare Antwort zurückgegeben.");
-    return text.trim();
+    return sanitizeTypography(text.trim());
+  }
+
+  // Gemini haelt sich nicht immer an die Zeichenregel im Default-Prompt, und
+  // eigene Prompts enthalten sie gar nicht. Deshalb deterministische Nach-
+  // bearbeitung: im Kommentar landen nur direkt tippbare Zeichen (Regel
+  // 2026-07-12). Reihenfolge wichtig: Zahlenbereiche vor der Satzstrich-Regel.
+  function sanitizeTypography(text) {
+    return text
+      .replace(/(\d)\s*[—–]\s*(\d)/g, '$1-$2')   // 5–10 -> 5-10
+      .replace(/«\s*/g, '"').replace(/\s*»/g, '"')
+      .replace(/^[\t ]*[—–―]\s*/gm, '- ')        // Strich am Zeilenanfang
+      .replace(/\s*[—–―]+\s*/g, ', ')            // Gedankenstrich im Satz
+      .replace(/[‘’‚‹›]/g, "'")
+      .replace(/[“”„]/g, '"')
+      .replace(/…/g, '...');
   }
 
   // --- MAIN DISTILLER LOGIC ---

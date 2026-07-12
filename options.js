@@ -31,7 +31,7 @@ const DEFAULT_MODEL  = 'gemini-flash-lite-latest';
 // Muss mit PROMPT_GENERATION in content.js übereinstimmen. Bei jeder
 // Verbesserung des Default-Prompts hochzählen, damit der Hinweis für
 // Nutzer mit eigenem Prompt erneut erscheint.
-const PROMPT_GENERATION = 3;
+const PROMPT_GENERATION = 4;
 
 // Kuratierte Alias-IDs statt ListModels: die Aliase wandern automatisch zur
 // jeweils neuesten Version, und die Rohliste der API enthält TTS-/Bild-/
@@ -136,7 +136,9 @@ saveBtn.addEventListener('click', () => {
   // Den Default-Prompt nicht persistieren: nur ein tatsächlich angepasster
   // Prompt wird gespeichert, sonst friert jeder Save den heutigen Default ein
   // und künftige Prompt-Verbesserungen erreichen den Nutzer nie (v1.5.2-Fix).
-  const data = { geminiApiKey: key, distillerLang: lang, distillerModel: model, telemetryEnabled: telemetryCheckbox.checked };
+  // Save gilt als "aktuelle Generation gesehen": ein danach angepasster
+  // Prompt loest den Default-Verbesserungs-Hinweis nicht mehr aus.
+  const data = { geminiApiKey: key, distillerLang: lang, distillerModel: model, telemetryEnabled: telemetryCheckbox.checked, promptNoticeSeen: PROMPT_GENERATION };
   if (prompt === DEFAULT_PROMPT.trim()) {
     chrome.storage.sync.remove('distillerPrompt');
   } else {
