@@ -1251,10 +1251,10 @@
       }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 8192,
-        thinkingConfig: {
-          thinkingBudget: 0
-        }
+        maxOutputTokens: 8192
+        // Kein thinkingConfig: gemini-3.5/3.6 lehnen thinkingBudget 0 mit 400
+        // INVALID_ARGUMENT ab (Alias-Wanderung 2026-07-21); Lite-Modelle denken
+        // ohne das Feld ohnehin nicht, die uebrigen nach ihrem eigenen Default.
       }
     };
 
