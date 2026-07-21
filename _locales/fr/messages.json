@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Astuce : choisissez un autre modèle Gemini dans les réglages du module."
   },
+  "err_not_your_fault": {
+    "message": "Cette erreur ne peut pas être corrigée dans les paramètres. Elle vient généralement d'un changement côté Google. Vérifiez si une mise à jour du module est disponible :"
+  },
   "err_copied_fallback": {
     "message": "Le résumé est dans le presse-papiers — collez-le manuellement dans le champ de commentaire."
   },

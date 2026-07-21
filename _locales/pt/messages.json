@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Dica: escolha outro modelo Gemini nas configurações da extensão."
   },
+  "err_not_your_fault": {
+    "message": "Este erro não pode ser resolvido nas configurações. Normalmente é causado por uma mudança do lado do Google. Verifique se há uma atualização do complemento disponível:"
+  },
   "err_copied_fallback": {
     "message": "O resumo está na área de transferência — cole-o manualmente no campo de comentários."
   },

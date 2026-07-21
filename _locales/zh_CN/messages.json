@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "提示：请在扩展设置中选择其他 Gemini 模型。"
   },
+  "err_not_your_fault": {
+    "message": "此错误无法通过设置解决。通常是 Google 方面的更改所致。请检查扩展是否有可用更新:"
+  },
   "err_copied_fallback": {
     "message": "摘要已复制到剪贴板，请手动粘贴到评论框中。"
   },

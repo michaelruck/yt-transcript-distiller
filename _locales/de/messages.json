@@ -92,6 +92,9 @@
   "err_switch_model": {
     "message": "Tipp: In den Add-on-Einstellungen ein anderes Gemini-Modell wählen."
   },
+  "err_not_your_fault": {
+    "message": "Dieser Fehler lässt sich nicht über die Einstellungen beheben. Ursache ist meist eine Änderung auf Googles Seite. Bitte prüfe, ob ein Update des Add-ons verfügbar ist:"
+  },
   "err_copied_fallback": {
     "message": "Die Zusammenfassung liegt in der Zwischenablage — manuell ins Kommentarfeld einfügen."
   },

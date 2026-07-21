@@ -1267,14 +1267,28 @@
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       const msg = errBody?.error?.message || `HTTP ${res.status}`;
-      if (res.status === 401 || res.status === 403) {
+      // Ungueltiger Key kommt nicht nur als 401/403, sondern auch als 400
+      // INVALID_ARGUMENT (Reason API_KEY_INVALID) - den darf der allgemeine
+      // 400er-Hinweis unten nicht erwischen, der Nutzer kann ihn selbst loesen.
+      const keyProblem = res.status === 401 || res.status === 403 ||
+        (res.status === 400 && (
+          /api key/i.test(msg) ||
+          (errBody?.error?.details || []).some(d => d?.reason === 'API_KEY_INVALID')
+        ));
+      if (keyProblem) {
         chrome.storage.sync.set({ invalidKey: true });
       }
       // 404 = Modell abgeschaltet, 429 = Tageskontingent des Modells leer,
       // 503 = Modell überlastet — in allen drei Fällen hilft ein Modellwechsel.
-      const hint = (res.status === 404 || res.status === 429 || res.status === 503)
-        ? `\n\n${chrome.i18n.getMessage('err_switch_model')}`
-        : '';
+      // Sonstige 400er (z.B. abgelehnte Request-Parameter nach einer Alias-
+      // Wanderung wie 2026-07-21) und 5xx kann der Nutzer nicht loesen:
+      // Schuldfrage klaeren und auf ein Add-on-Update verweisen.
+      let hint = '';
+      if (res.status === 404 || res.status === 429 || res.status === 503) {
+        hint = `\n\n${chrome.i18n.getMessage('err_switch_model')}`;
+      } else if (!keyProblem && (res.status === 400 || res.status >= 500)) {
+        hint = `\n\n${chrome.i18n.getMessage('err_not_your_fault')}\n${AMO_LINK}`;
+      }
       throw new Error(`Gemini API Fehler: ${msg}${hint}`);
     }
 
